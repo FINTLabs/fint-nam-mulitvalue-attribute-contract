@@ -19,8 +19,8 @@ public class SamlResponseService {
     private final Tracer tracer;
     private final Properties properties;
 
-    public SamlResponseService(Tracer tracer, Properties properties) {
-        this.tracer = tracer;
+    public SamlResponseService(Properties properties) {
+        this.tracer = Tracer.getInstance(properties.getProperty(AttributesQueryConstants.PROP_NAME_TRACE));
         this.properties = properties;
     }
 

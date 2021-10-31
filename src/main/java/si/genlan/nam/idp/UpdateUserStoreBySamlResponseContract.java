@@ -27,7 +27,7 @@ public class UpdateUserStoreBySamlResponseContract extends LocalAuthenticationCl
     public UpdateUserStoreBySamlResponseContract(Properties props, ArrayList<UserAuthority> arrayList) {
         super(props, arrayList);
 
-        tracer = new Tracer(getProperty(AttributesQueryConstants.PROP_NAME_TRACE));
+        tracer = Tracer.getInstance(getProperty(AttributesQueryConstants.PROP_NAME_TRACE));
         String version = UpdateUserStoreBySamlResponseContract.class.getPackage().getImplementationVersion();
         matchingAttribute = getProperty(AttributesQueryConstants.PROP_NAME_MATCHING_NAME);
 
@@ -72,7 +72,7 @@ public class UpdateUserStoreBySamlResponseContract extends LocalAuthenticationCl
     protected int doAuthenticate() {
         tracer.trace("doAuthenticate()");
         String samlResponse = null;
-        SamlResponseService samlResponseService = new SamlResponseService(tracer, m_Properties);
+        SamlResponseService samlResponseService = new SamlResponseService(m_Properties);
 
         try {
             NIDPPrincipal nidpPrincipal = resolveUserPrincipal();

@@ -6,10 +6,20 @@ import java.util.Objects;
 import java.util.Properties;
 
 public class Tracer {
+
+    private static Tracer instance;
+
     private final boolean trace;
 
-    public Tracer(String property) {
+    private Tracer(String property) {
         this.trace = Boolean.parseBoolean(property);
+    }
+
+    public static Tracer getInstance(String trace) {
+        if (instance == null) {
+            instance = new Tracer(trace);
+        }
+        return instance;
     }
 
     public boolean getTracing() {
@@ -33,7 +43,7 @@ public class Tracer {
 
     }
 
-    String createLogMessage(String... messages) {
+    private String createLogMessage(String... messages) {
         StringBuilder logMessage = new StringBuilder();
         for (String message : messages) {
             logMessage.append(" ").append(message);

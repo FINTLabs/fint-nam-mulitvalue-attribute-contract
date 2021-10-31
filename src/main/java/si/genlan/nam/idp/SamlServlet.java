@@ -24,12 +24,12 @@ public class SamlServlet extends NIDPServlet {
 
     public SamlServlet() {
         super();
+        tracer = Tracer.getInstance("true");
         matchingAttr = UpdateUserStoreBySamlResponseContract.matchingAttribute;
     }
 
     public void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException {
         gotAttributes.clear();
-        tracer = new Tracer("true");
         resp.setContentType("text/html");
         tracer.trace("readAttributesServlet: doPost()");
         String respMsg = req.getParameter("SAMLResponse");
@@ -112,7 +112,6 @@ public class SamlServlet extends NIDPServlet {
     }
 
     public void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException {
-        tracer = new Tracer("true");
         resp.setContentType("text/html");
         tracer.trace("readAttributesServlet: doGet()");
         super.doGet(req, resp);
