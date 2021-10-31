@@ -1,0 +1,53 @@
+plugins {
+    id 'org.springframework.boot' version '2.2.4.RELEASE'
+    id 'io.spring.dependency-management' version '1.0.9.RELEASE'
+}
+
+apply plugin: 'java'
+apply plugin: 'groovy'
+//apply plugin: 'maven'
+apply plugin: 'maven-publish'
+apply plugin: 'org.springframework.boot'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+    flatDir {
+        dirs 'netiq'
+    }
+}
+
+bootJar {
+    enabled = false
+}
+
+dependencies {
+    implementation 'org.slf4j:slf4j-api:1.7.32'
+    implementation 'org.apache.tomcat:tomcat-servlet-api:10.0.8'
+    implementation 'org.opensaml:xmltooling:1.3.1'
+
+
+    implementation name: 'nidp'
+    implementation name: 'NAMCommon'
+
+    compileOnly 'org.apache.tomcat:catalina:6.0.16'
+    compileOnly 'javax.servlet:servlet-api:2.5'
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    testImplementation name: 'jcc'
+    testImplementation name: 'jgroups-all'
+    testImplementation name: 'jsso'
+    testImplementation name: 'nxpe'
+    testImplementation 'org.apache.commons:commons-lang3:3.12.0'
+    testImplementation 'cglib:cglib-nodep:3.3.0'
+    testImplementation "org.springframework.boot:spring-boot-starter-test"
+    testImplementation "org.spockframework:spock-spring:2.0-groovy-2.5"
+    testImplementation "org.spockframework:spock-core:2.0-groovy-2.5"
+}
+
+test {
+    useJUnitPlatform()
+}

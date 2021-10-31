@@ -1,0 +1,12 @@
+bin/
+.settings/
+.classpath
+.project
+*.docx
+README.md
+*.iml
+.idea
+.gradle
+.DS_Store
+netiq/*.jar
+build/
