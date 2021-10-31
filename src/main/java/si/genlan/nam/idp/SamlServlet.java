@@ -20,7 +20,7 @@ public class SamlServlet extends NIDPServlet {
     public static String getOne = "null";
     public static String SamlResponse = "";
     public static String matchingAttr;
-    public static ArrayList<MyAttribute> gotAttributes = new ArrayList<MyAttribute>();
+    public static ArrayList<SamlResponseAttribute> gotAttributes = new ArrayList<SamlResponseAttribute>();
 
     public SamlServlet() {
         super();

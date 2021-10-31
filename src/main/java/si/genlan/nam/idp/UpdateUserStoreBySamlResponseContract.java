@@ -20,7 +20,7 @@ public class UpdateUserStoreBySamlResponseContract extends LocalAuthenticationCl
     public static String matchingAttribute;
 
     private final LdapUserStoreRepository ldapUserStoreRepository;
-    private final AttributeRepository attributeRepository;
+    private final SamlResponseAttributeRepository attributeRepository;
 
     public static SamlRequestVariableList samlRequestVariableList = new SamlRequestVariableList();
 
@@ -45,7 +45,7 @@ public class UpdateUserStoreBySamlResponseContract extends LocalAuthenticationCl
                 .tracer(tracer)
                 .build();
 
-        attributeRepository = new AttributeRepository();
+        attributeRepository = new SamlResponseAttributeRepository();
 
         tracer.traceConfig(props);
 
@@ -54,7 +54,7 @@ public class UpdateUserStoreBySamlResponseContract extends LocalAuthenticationCl
     }
 
 
-    private void printList(List<MyAttribute> list) {
+    private void printList(List<SamlResponseAttribute> list) {
         list.forEach(attr ->
                 tracer.trace("printList: Attribute "
                         + attr.getName()
@@ -102,7 +102,7 @@ public class UpdateUserStoreBySamlResponseContract extends LocalAuthenticationCl
                 printList(attributeRepository.getAttributes());
 
                 String userPath = getUserPrincipal().getUserIdentifier();
-                String[] gotAttributes = attributeRepository.getSentAttributes();
+                String[] gotAttributes = attributeRepository.getArrayOfAttributeNames();
                 attributes = userAuthority.getAttributes(nidpPrincipal, gotAttributes);
 
                 for (String gotAttribute : gotAttributes) {
@@ -112,7 +112,7 @@ public class UpdateUserStoreBySamlResponseContract extends LocalAuthenticationCl
                         NamingEnumeration<?> multivalue = attr.getAll();
                         StringBuilder multivalueVal = new StringBuilder();
 
-                        String[] samlValues = attributeRepository.getSentAttributesArray(gotAttribute);
+                        String[] samlValues = attributeRepository.getValuesAsArrayByAttributeName(gotAttribute);
 
                         String[] multivalueStoreArray = new String[0];
 
@@ -127,7 +127,7 @@ public class UpdateUserStoreBySamlResponseContract extends LocalAuthenticationCl
                         ModificationItem[] mods = new ModificationItem[0];
                         if (!ListUtils.isListsEqual(samlValues, multivalueStoreArray)) {
                             tracer.trace(
-                                    "doAuthenticate: Attribute " + gotAttribute + " SamlValue: " + attributeRepository.getListValue(gotAttribute) + " StoreValue: " + multivalueVal);
+                                    "doAuthenticate: Attribute " + gotAttribute + " SamlValue: " + attributeRepository.getJoinedValueListByName(gotAttribute) + " StoreValue: " + multivalueVal);
                             tracer.trace("doAuthenticate: Going through multivalue array: " + Arrays.toString(multivalueStoreArray));
                             for (String s : multivalueStoreArray) {
                                 tracer.trace("doAuthenticate: Attr: " + gotAttribute + "String: " + s);
@@ -168,7 +168,7 @@ public class UpdateUserStoreBySamlResponseContract extends LocalAuthenticationCl
 
                     } else {
                         ModificationItem[] mods;
-                        String[] samlValues = attributeRepository.getSentAttributesArray(gotAttribute);
+                        String[] samlValues = attributeRepository.getValuesAsArrayByAttributeName(gotAttribute);
                         mods = new ModificationItem[0];
                         tracer.trace("doAuthenticate: Going through saml values");
                         for (String s : samlValues) {
