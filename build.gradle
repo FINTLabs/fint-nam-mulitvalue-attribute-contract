@@ -35,7 +35,7 @@ dependencies {
     compileOnly 'org.apache.tomcat:catalina:6.0.16'
     compileOnly 'javax.servlet:servlet-api:2.5'
     compileOnly 'org.projectlombok:lombok'
-    annotationProcessor 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok:1.18.22'
 
     testImplementation name: 'jcc'
     testImplementation name: 'jgroups-all'

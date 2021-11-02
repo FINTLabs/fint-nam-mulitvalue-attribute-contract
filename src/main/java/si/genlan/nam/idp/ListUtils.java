@@ -1,6 +1,5 @@
 package si.genlan.nam.idp;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -14,7 +13,7 @@ public class ListUtils {
         Collections.sort(one);
         Collections.sort(two);
 
-        if(one.size() != two.size()){
+        if (one.size() != two.size()) {
             return false;
         }
 

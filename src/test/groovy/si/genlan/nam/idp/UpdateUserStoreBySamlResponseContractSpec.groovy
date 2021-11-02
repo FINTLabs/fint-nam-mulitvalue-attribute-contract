@@ -1,6 +1,6 @@
 package si.genlan.nam.idp
 
-import com.novell.nidp.common.authority.UserAuthority
+
 import spock.lang.Specification
 
 class UpdateUserStoreBySamlResponseContractSpec extends Specification {

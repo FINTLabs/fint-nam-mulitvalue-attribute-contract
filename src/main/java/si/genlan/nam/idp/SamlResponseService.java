@@ -10,7 +10,6 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.StringReader;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
 
@@ -20,7 +19,12 @@ public class SamlResponseService {
     private final Properties properties;
 
     public SamlResponseService(Properties properties) {
-        this.tracer = Tracer.getInstance(properties.getProperty(AttributesQueryConstants.PROP_NAME_TRACE));
+        if(properties.containsKey(AttributesQueryConstants.PROP_NAME_TRACE)) {
+            this.tracer = Tracer.getInstance(properties.getProperty(AttributesQueryConstants.PROP_NAME_TRACE));
+        }
+        else
+            this.tracer = Tracer.getInstance("true");
+
         this.properties = properties;
     }
 
@@ -47,7 +51,46 @@ public class SamlResponseService {
 
         return objectObjectHashMap;
     }
+    public void AddDecodedSamlResponseToList(String responseMessage, String matchingAttribute){
+        try {
+            Document samlResp = decodeSAMLResponse(responseMessage);
+            NodeList nl = samlResp.getElementsByTagName("saml:Attribute");
+            tracer.trace("Found nodes: " + nl.getLength());
+            for (int i = 0; i < nl.getLength(); i++) {
+                Element e = (Element) nl.item(i);
+                String name = e.getAttribute("Name");
+                tracer.trace("readAttributesServlet: doPost(): attr name: " + name + " matcAttr: " + matchingAttribute);
+                if (name.equals(matchingAttribute)) {
+                    NodeList children = nl.item(i).getChildNodes();
+                    for (int j = 0; j < children.getLength(); j++) {
+                        String childValue = children.item(j).getTextContent();
+                        tracer.trace("readAttributesServlet: doPost(): Adding into svar: " + childValue);
+                        UpdateUserStoreBySamlResponseContract.samlRequestVariableList.getSamlRequests().add(new SamlRequest(childValue, responseMessage));
+                    }
+                }
 
+            }
+            nl = samlResp.getElementsByTagName("Attribute");
+            tracer.trace("readAttributesServlet: doPost(): Found nodes: " + nl.getLength());
+            for (int i = 0; i < nl.getLength(); i++) {
+                Element e = (Element) nl.item(i);
+                String name = e.getAttribute("Name");
+                tracer.trace("readAttributesServlet: doPost(): attr name: " + name + " matcAttr: " + matchingAttribute);
+                if (name.equals(matchingAttribute)) {
+                    NodeList children = nl.item(i).getChildNodes();
+                    for (int j = 0; j < children.getLength(); j++) {
+                        String childValue = children.item(j).getTextContent();
+                        tracer.trace("readAttributesServlet: doPost(): Adding into svar: " + childValue);
+                        UpdateUserStoreBySamlResponseContract.samlRequestVariableList.getSamlRequests().add(new SamlRequest(childValue, responseMessage));
+                    }
+                }
+
+            }
+        } catch (Exception e1) {
+
+            e1.printStackTrace();
+        }
+    }
     public Document decodeSAMLResponse(String responseMessage) {
         byte[] base64DecodedResponse = Base64.decode(responseMessage);
         String decodedResponse = new String(base64DecodedResponse);

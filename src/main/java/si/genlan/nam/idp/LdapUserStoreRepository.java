@@ -3,7 +3,6 @@ package si.genlan.nam.idp;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import javax.naming.Context;
 import javax.naming.NamingException;
