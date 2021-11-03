@@ -8,6 +8,9 @@ import org.xml.sax.InputSource;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathFactory;
 import java.io.StringReader;
 import java.util.HashMap;
 import java.util.Map;
@@ -53,38 +56,25 @@ public class SamlResponseService {
     }
     public void AddDecodedSamlResponseToList(String responseMessage, String matchingAttribute){
         try {
-            Document samlResp = decodeSAMLResponse(responseMessage);
-            NodeList nl = samlResp.getElementsByTagName("saml:Attribute");
-            tracer.trace("Found nodes: " + nl.getLength());
-            for (int i = 0; i < nl.getLength(); i++) {
-                Element e = (Element) nl.item(i);
-                String name = e.getAttribute("Name");
-                tracer.trace("readAttributesServlet: doPost(): attr name: " + name + " matcAttr: " + matchingAttribute);
-                if (name.equals(matchingAttribute)) {
-                    NodeList children = nl.item(i).getChildNodes();
-                    for (int j = 0; j < children.getLength(); j++) {
-                        String childValue = children.item(j).getTextContent();
-                        tracer.trace("readAttributesServlet: doPost(): Adding into svar: " + childValue);
-                        UpdateUserStoreBySamlResponseContract.samlRequestVariableList.getSamlRequests().add(new SamlRequest(childValue, responseMessage));
-                    }
-                }
+            XPath xPath = XPathFactory.newInstance().newXPath();
+            NodeList nodes = null;
+            Document document = decodeSAMLResponse(responseMessage);
 
-            }
-            nl = samlResp.getElementsByTagName("Attribute");
-            tracer.trace("readAttributesServlet: doPost(): Found nodes: " + nl.getLength());
-            for (int i = 0; i < nl.getLength(); i++) {
-                Element e = (Element) nl.item(i);
-                String name = e.getAttribute("Name");
-                tracer.trace("readAttributesServlet: doPost(): attr name: " + name + " matcAttr: " + matchingAttribute);
-                if (name.equals(matchingAttribute)) {
-                    NodeList children = nl.item(i).getChildNodes();
-                    for (int j = 0; j < children.getLength(); j++) {
-                        String childValue = children.item(j).getTextContent();
-                        tracer.trace("readAttributesServlet: doPost(): Adding into svar: " + childValue);
-                        UpdateUserStoreBySamlResponseContract.samlRequestVariableList.getSamlRequests().add(new SamlRequest(childValue, responseMessage));
-                    }
-                }
+            nodes = (NodeList) xPath.compile("//Attribute/*").evaluate(document, XPathConstants.NODESET);
+            tracer.trace("\nNodeLength " + nodes.getLength());
+            for(int i = 0; i < nodes.getLength(); i++)
+            {
 
+                Element e = (Element) nodes.item(i).getParentNode();
+                String attributeValue = nodes.item(i).getTextContent();
+                String attributeName = e.getAttribute("Name");
+
+                tracer.trace("\nNodeName: "+ attributeName + " Attribute Value: " + attributeValue);
+
+                if(attributeName.equals(matchingAttribute)) {
+                    UpdateUserStoreBySamlResponseContract.samlRequestVariableList.getSamlRequests().add(new SamlRequest(attributeValue, responseMessage));
+                    break;
+                }
             }
         } catch (Exception e1) {
 

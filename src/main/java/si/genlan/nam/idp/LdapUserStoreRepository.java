@@ -5,10 +5,13 @@ import lombok.Builder;
 import lombok.Data;
 
 import javax.naming.Context;
+import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
+import javax.naming.directory.BasicAttribute;
 import javax.naming.directory.DirContext;
 import javax.naming.directory.InitialDirContext;
 import javax.naming.directory.ModificationItem;
+import java.util.Arrays;
 import java.util.Properties;
 
 @Data
@@ -42,5 +45,53 @@ public class LdapUserStoreRepository {
 
     public void updateUser(String name, ModificationItem[] modificaitonItems) throws NamingException {
         ldapConnection.modifyAttributes(name, modificaitonItems);
+    }
+
+    public String[] getAttributeValues(NamingEnumeration<?> attributes) throws NamingException {
+        String[] multivalueStoreArray = new String[0];
+        while (attributes.hasMore()) {
+            String val = attributes.next().toString();
+            multivalueStoreArray = Arrays.copyOf(multivalueStoreArray, multivalueStoreArray.length + 1);
+            multivalueStoreArray[multivalueStoreArray.length - 1] = val;
+        }
+        return multivalueStoreArray;
+    }
+
+    public StringBuilder getAttributeValuesString(NamingEnumeration<?> attributes) throws NamingException {
+        StringBuilder multivalueStore = new StringBuilder();
+        while (attributes.hasMore()) {
+            String val = attributes.next().toString();
+            multivalueStore.append(val).append("; ");
+        }
+
+        return multivalueStore;
+    }
+
+    public ModificationItem[] AttributeValuesToAddFromUserStore(String[] responseAttributeValues, String[] userStoreAttributeValues, String attributeName)
+    {
+        ModificationItem[] mods = new ModificationItem[0];
+        for (String s : responseAttributeValues) {
+            if (!(Arrays.asList(userStoreAttributeValues).contains(s))) {
+                mods = Arrays.copyOf(mods, mods.length + 1);
+                mods[mods.length - 1] = new ModificationItem(DirContext.ADD_ATTRIBUTE,
+                        new BasicAttribute(attributeName, s));
+
+            }
+        }
+        return mods;
+    }
+
+    public ModificationItem[] AttributeValuesToDeleteFromUserStore(String[] responseAttributeValues, String[] userStoreAttributeValues, String attributeName)
+    {
+        ModificationItem[] mods = new ModificationItem[0];
+        for (String s : responseAttributeValues) {
+            if (!(Arrays.asList(userStoreAttributeValues).contains(s))) {
+                mods = Arrays.copyOf(mods, mods.length + 1);
+                mods[mods.length - 1] = new ModificationItem(DirContext.REMOVE_ATTRIBUTE,
+                        new BasicAttribute(attributeName, s));
+
+            }
+        }
+        return mods;
     }
 }
