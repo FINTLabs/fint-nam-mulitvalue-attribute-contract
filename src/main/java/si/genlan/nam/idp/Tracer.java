@@ -8,16 +8,17 @@ import java.util.Properties;
 public class Tracer {
 
     private static Tracer instance;
-
+    private String applicationName;
     private final boolean trace;
 
-    private Tracer(String property) {
+    private Tracer(String property, String applicationName) {
         this.trace = Boolean.parseBoolean(property);
+        this.applicationName = applicationName;
     }
 
-    public static Tracer getInstance(String trace) {
-        if (instance == null) {
-            instance = new Tracer(trace);
+    public static Tracer getInstance(String trace, String applicationName) {
+        if (instance == null || !instance.equalName(applicationName)) {
+            instance = new Tracer(trace, applicationName);
         }
         return instance;
     }
@@ -31,7 +32,10 @@ public class Tracer {
             System.out.println(createLogMessage(messages));
         }
     }
-
+    public boolean equalName(String appName)
+    {
+        return appName.equals(applicationName);
+    }
     public void traceConfig(Properties properties) {
 
         properties.keySet().stream()
@@ -50,7 +54,7 @@ public class Tracer {
         }
         SimpleDateFormat dtf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         Date now = new Date();
-        return "ReadingAttributesQuery @ " + dtf.format(now) + " ----> :" + logMessage.toString();
+        return applicationName + " @ " + dtf.format(now) + " ----> :" + logMessage.toString();
     }
 
 

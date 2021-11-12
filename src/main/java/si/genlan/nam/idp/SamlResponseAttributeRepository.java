@@ -31,6 +31,22 @@ public class SamlResponseAttributeRepository {
         attributes.removeIf(attributeExists(name));
         attributes.add(attribute);
     }
+    public void add(String name, List<String> values) {
+        SamlResponseAttribute attribute = null;
+        for(String value : values) {
+            attribute = attributes.stream()
+                    .filter(attributeExists(name))
+                    .peek(addValueToExistingAttribute(value))
+                    .findAny()
+                    .orElse(new SamlResponseAttribute(name, value));
+            if(attribute != null)
+            {
+                attributes.removeIf(attributeExists(name));
+                attributes.add(attribute);
+            }
+        }
+
+    }
 
     private Consumer<SamlResponseAttribute> addValueToExistingAttribute(String value) {
         return a -> a.addValue(value);
@@ -69,4 +85,5 @@ public class SamlResponseAttributeRepository {
                 .map(SamlResponseAttribute::getValuesAsArray)
                 .orElse(null);
     }
+
 }

@@ -22,6 +22,9 @@ repositories {
 bootJar {
     enabled = false
 }
+jar{
+                exclude 'META-INF', 'META-INF/**'
+        }
 
 dependencies {
     implementation 'org.slf4j:slf4j-api:1.7.32'
@@ -37,10 +40,10 @@ dependencies {
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok:1.18.22'
 
-    testImplementation name: 'jcc'
-    testImplementation name: 'jgroups-all'
-    testImplementation name: 'jsso'
-    testImplementation name: 'nxpe'
+    implementation name: 'jcc'
+    implementation name: 'jgroups-all'
+    implementation name: 'jsso'
+    implementation name: 'nxpe'
     testImplementation 'org.apache.commons:commons-lang3:3.12.0'
     testImplementation 'cglib:cglib-nodep:3.3.0'
     testImplementation "org.springframework.boot:spring-boot-starter-test"

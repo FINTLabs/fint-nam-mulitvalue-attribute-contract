@@ -7,10 +7,7 @@ import lombok.Data;
 import javax.naming.Context;
 import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
-import javax.naming.directory.BasicAttribute;
-import javax.naming.directory.DirContext;
-import javax.naming.directory.InitialDirContext;
-import javax.naming.directory.ModificationItem;
+import javax.naming.directory.*;
 import java.util.Arrays;
 import java.util.Properties;
 
@@ -22,9 +19,10 @@ public class LdapUserStoreRepository {
     private String providerUrl;
     private String securityPrincipal;
     private String securityCredentials;
+    private String matchingAttributeName;
 
     @Builder.Default
-    private DirContext ldapConnection = null;
+    private DirContext ldapConnection=null;
     private Tracer tracer;
 
     public LdapUserStoreRepository() {
@@ -34,26 +32,32 @@ public class LdapUserStoreRepository {
         env.put(Context.SECURITY_AUTHENTICATION, "simple");
         env.put(Context.SECURITY_PRINCIPAL, securityPrincipal);
         env.put(Context.SECURITY_CREDENTIALS, securityCredentials);
+        env.put(Context.SECURITY_PROTOCOL, "ssl");
         try {
             ldapConnection = new InitialDirContext(env);
             tracer.trace("newConnection: LDAP Connection Established: " + ldapConnection);
+            if(ldapConnection == null)
+                tracer.trace("Ldap connection not established");
 
         } catch (NamingException e) {
             e.printStackTrace();
         }
+
     }
 
-    public void updateUser(String name, ModificationItem[] modificaitonItems) throws NamingException {
-        ldapConnection.modifyAttributes(name, modificaitonItems);
+    public void updateUser(String name, ModificationItem[] modificationItems) throws NamingException {
+        ldapConnection.modifyAttributes(name, modificationItems);
     }
 
     public String[] getAttributeValues(NamingEnumeration<?> attributes) throws NamingException {
         String[] multivalueStoreArray = new String[0];
         while (attributes.hasMore()) {
             String val = attributes.next().toString();
+            tracer.trace("Adding attribute " + val);
             multivalueStoreArray = Arrays.copyOf(multivalueStoreArray, multivalueStoreArray.length + 1);
             multivalueStoreArray[multivalueStoreArray.length - 1] = val;
         }
+        System.out.println("LDAP Store Array Out: " + Arrays.toString(multivalueStoreArray));
         return multivalueStoreArray;
     }
 
@@ -93,5 +97,30 @@ public class LdapUserStoreRepository {
             }
         }
         return mods;
+    }
+
+    public void MatchUser(String LDAPMatchingAttributeValue) throws NamingException {
+        String searchFilter = "(&(mail="+LDAPMatchingAttributeValue+"))";
+        String[] requiredAttributes = {"mail"};
+
+        SearchControls controls = new SearchControls();
+        controls.setSearchScope(SearchControls.SUBTREE_SCOPE);
+        controls.setReturningAttributes(requiredAttributes);
+        NamingEnumeration users;
+        if(ldapConnection != null) {
+            users = ldapConnection.search("o=Test", searchFilter, controls);
+            SearchResult result = null;
+            while(users.hasMore())
+            {
+                Attributes attr = result.getAttributes();
+                String name = attr.get("cn").get(0).toString();
+                System.out.println("Cn: "+attr.get("cn"));
+                System.out.println("Sn: "+attr.get("sn"));
+            }
+        }
+        else
+            tracer.trace("Ldap connection null");
+
+
     }
 }

@@ -1,13 +1,11 @@
 package si.genlan.nam.idp;
 
 import com.novell.nidp.servlets.NIDPServlet;
-import org.opensaml.xml.util.Base64;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.util.ArrayList;
-import java.util.Properties;
 
 public class SamlServlet extends NIDPServlet {
     public static String getOne = "null";
@@ -18,16 +16,17 @@ public class SamlServlet extends NIDPServlet {
 
     public SamlServlet() {
         super();
-        tracer = Tracer.getInstance("true");
+        tracer = Tracer.getInstance("true", "SamlServlet GenLan");
         matchingAttr = UpdateUserStoreBySamlResponseContract.matchingAttribute;
     }
 
     public void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException {
-        gotAttributes.clear();
+        /*gotAttributes.clear();
         resp.setContentType("text/html");
         tracer.trace("readAttributesServlet: doPost()");
         String respMsg = req.getParameter("SAMLResponse");
         SamlResponseService responseService = new SamlResponseService(new Properties());
+        matchingAttr = UpdateUserStoreBySamlResponseContract.matchingAttribute; //Calling it again in case servlet initializes before Authentication Class.
 
         if (respMsg != null) {
             SamlResponse = respMsg;
@@ -37,7 +36,6 @@ public class SamlServlet extends NIDPServlet {
             String decodedResponse = new String(decodedXmlBytes, 0, decodedXmlBytes.length);
             tracer.trace("readAttributesServlet: doPost(): saml-decoded: " + decodedResponse);
             tracer.trace("readAttributesServlet: doPost(): matching attribute: " + matchingAttr);
-            responseService.AddDecodedSamlResponseToList(respMsg, matchingAttr);
 
 
         } else if (req.getParameter("SAMLart") != null) {
@@ -46,7 +44,7 @@ public class SamlServlet extends NIDPServlet {
         } else
             tracer.trace("readAttributesServlet: doPost(): no saml message");
 
-
+*/
         super.doPost(req, resp);
     }
 

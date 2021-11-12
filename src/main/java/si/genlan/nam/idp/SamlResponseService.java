@@ -1,99 +1,85 @@
 package si.genlan.nam.idp;
 
-import org.opensaml.xml.util.Base64;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
+import com.novell.nidp.NIDPSession;
+import com.novell.nidp.NIDPSubject;
+import com.novell.nidp.liberty.wsc.cache.WSCCacheEntry;
+import com.novell.nidp.liberty.wsc.cache.pushed.WSCCachePushedCache;
+import com.novell.nidp.liberty.wsc.cache.pushed.WSCCachePushedCacheSet;
+import com.novell.nidp.liberty.wsf.idsis.ldapservice.schema.LDAPAttributeValue;
+import com.novell.nidp.liberty.wsf.idsis.ldapservice.schema.LDAPUserAttribute;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathFactory;
-import java.io.StringReader;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 
 public class SamlResponseService {
 
     private final Tracer tracer;
     private final Properties properties;
+    private CacheService cacheService;
 
     public SamlResponseService(Properties properties) {
         if(properties.containsKey(AttributesQueryConstants.PROP_NAME_TRACE)) {
-            this.tracer = Tracer.getInstance(properties.getProperty(AttributesQueryConstants.PROP_NAME_TRACE));
+            this.tracer = Tracer.getInstance(properties.getProperty(AttributesQueryConstants.PROP_NAME_TRACE), "SamlResponseService GenLan");
         }
         else
-            this.tracer = Tracer.getInstance("true");
+            this.tracer = Tracer.getInstance("true", "SamlResponseService GenLan");
 
         this.properties = properties;
+        tracer.trace("SamlResponseService initiated!");
+        this.cacheService = CacheService
+                .builder()
+                .tracer(tracer)
+                .build();
     }
-
-    public Map<String, String> getSamlResponseAttributes(String samlResponse) {
-        Document decodedSamlResponseDocument = decodeSAMLResponse(samlResponse);
-        NodeList nodeList = decodedSamlResponseDocument.getElementsByTagName("saml:Attribute");
-        tracer.trace("doAuthenticate: Found nodes: " + nodeList.getLength());
-        Map<String, String> objectObjectHashMap = new HashMap<>();
-
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            Element e = (Element) nodeList.item(i);
-            String name = e.getAttribute("Name");
-            if (properties.getProperty(name) != null) {
-                name = properties.getProperty(name);
-            }
-            NodeList children = nodeList.item(i).getChildNodes();
-
-            for (int j = 0; j < children.getLength(); j++) {
-                String childValue = children.item(j).getTextContent();
-                //attributeRepository.add(name, childValue);
-                objectObjectHashMap.put(name, childValue);
-            }
-        }
-
-        return objectObjectHashMap;
-    }
-    public void AddDecodedSamlResponseToList(String responseMessage, String matchingAttribute){
-        try {
-            XPath xPath = XPathFactory.newInstance().newXPath();
-            NodeList nodes = null;
-            Document document = decodeSAMLResponse(responseMessage);
-
-            nodes = (NodeList) xPath.compile("//Attribute/*").evaluate(document, XPathConstants.NODESET);
-            tracer.trace("\nNodeLength " + nodes.getLength());
-            for(int i = 0; i < nodes.getLength(); i++)
+    public Map<String, List<String>> getAccessManagerUserAttribute(NIDPSession m_Session)
+    {
+        Map<String, List<String>> objectObjectHashMap = new HashMap<>();
+        tracer.trace("m_Session SamlResponse: " + m_Session);
+        if(m_Session != null) {
+            tracer.trace("m_Session ID: " +  m_Session.getID());
+            NIDPSubject subject = m_Session.getSubject();
+            if(subject != null)
             {
+                WSCCachePushedCache cache = cacheService.getPushedCache(m_Session);
+                Iterator<WSCCachePushedCacheSet> iterator = cache.iterator();
+                while(iterator.hasNext())
+                {
+                    WSCCachePushedCacheSet xy = iterator.next();
+                    tracer.trace(xy.toString());
+                    for (WSCCacheEntry xyEntry : xy.getEntries()) {
+                        tracer.trace("Select String: "+xyEntry.getSelectString()); //Get Select String
 
-                Element e = (Element) nodes.item(i).getParentNode();
-                String attributeValue = nodes.item(i).getTextContent();
-                String attributeName = e.getAttribute("Name");
+                        String str1  = xyEntry.getSelectString();
+                        str1 = str1.replace("/UserAttribute[@ldap:targetAttribute=\"", ""); //GETTING ATTRIBUTE NAME
+                        str1 = str1.replace("\"]", ""); //GETTING ATTRIBUTE NAME
+                        //tracer.trace("Data Item Class" + xyEntry.getDataItemValue().getClass());
+                        if(xyEntry.getDataItemValue() instanceof LDAPUserAttribute) {
 
-                tracer.trace("\nNodeName: "+ attributeName + " Attribute Value: " + attributeValue);
+                            LDAPUserAttribute ldapAttr = (LDAPUserAttribute) xyEntry.getDataItemValue(); //CHANGING INTO RIGHT CLASS
+                            Iterator<LDAPAttributeValue> values = ldapAttr.getValues(); //GETS ALL VALUES FROM LDAP
 
-                if(attributeName.equals(matchingAttribute)) {
-                    UpdateUserStoreBySamlResponseContract.samlRequestVariableList.getSamlRequests().add(new SamlRequest(attributeValue, responseMessage));
-                    break;
+                            if (values != null) {
+                                List<String> valuesList = new ArrayList<>();
+                                valuesList.clear();
+                                while (values.hasNext()) {
+
+                                    LDAPAttributeValue val = values.next(); //GET VALUE
+                                    valuesList.add(val.getValue());
+                                    tracer.trace("Adding LDAP Attribute: " + str1 + " LDAP Value : " + val.getValue());
+                                }
+                                objectObjectHashMap.put(str1, valuesList);
+                            }
+                        }
+                        else
+                            tracer.trace("Not instance of LDAPUserAttribute but: " + xyEntry.getDataItemValue().getClass());
+                    }
                 }
             }
-        } catch (Exception e1) {
-
-            e1.printStackTrace();
+            else
+                tracer.trace("m_Session subject is null!");
         }
-    }
-    public Document decodeSAMLResponse(String responseMessage) {
-        byte[] base64DecodedResponse = Base64.decode(responseMessage);
-        String decodedResponse = new String(base64DecodedResponse);
-        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-        DocumentBuilder builder;
-        try {
-            builder = factory.newDocumentBuilder();
-            return builder.parse(new InputSource(new StringReader(decodedResponse)));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        else
+            tracer.trace("m_Session null");
 
-        return null;
-
+        return objectObjectHashMap;
     }
 }

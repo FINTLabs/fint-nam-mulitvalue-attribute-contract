@@ -1,6 +1,7 @@
 package si.genlan.nam.idp;
 
 import lombok.Data;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,14 +18,30 @@ public class SamlResponseAttribute {
         values.add(val);
     }
 
-    public void addValue(String value) {
+    public void addValue(@NotNull String value) {
         if (values.stream().noneMatch(value::equalsIgnoreCase)) {
             values.add(value);
         }
     }
+    public void addValue(List<String> valuesGot)
+    {
+        valuesGot
+                .stream()
+                .forEach(value->
+                    {
+                        if(values.stream().noneMatch(value::equalsIgnoreCase))
+                        {
+                            values.add(value);
+                            System.out.println(String.format("Adding value %s to %s",value, name));
+                        }
+                    });
+
+    }
 
     public String getAttributeValues() {
-        return String.join("; ", values);
+        String str = String.join("; ", values);
+        System.out.println("Joined String: " + str);
+        return str;
     }
 
     public String[] getValuesAsArray() {
