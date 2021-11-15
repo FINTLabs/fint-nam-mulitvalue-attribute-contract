@@ -1,4 +1,4 @@
-package si.genlan.nam.idp;
+package si.genlan.nam.services;
 
 import com.novell.nidp.NIDPSession;
 import com.novell.nidp.liberty.wsc.cache.pushed.WSCCachePushed;
@@ -6,6 +6,7 @@ import com.novell.nidp.liberty.wsc.cache.pushed.WSCCachePushedCache;
 import com.novell.nidp.servlets.NIDPServletSession;
 import lombok.Builder;
 import lombok.Getter;
+import si.genlan.nam.idp.Tracer;
 
 @Builder
 @Getter

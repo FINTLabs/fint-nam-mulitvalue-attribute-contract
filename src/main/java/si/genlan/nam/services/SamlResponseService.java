@@ -1,4 +1,4 @@
-package si.genlan.nam.idp;
+package si.genlan.nam.services;
 
 import com.novell.nidp.NIDPSession;
 import com.novell.nidp.NIDPSubject;
@@ -7,6 +7,8 @@ import com.novell.nidp.liberty.wsc.cache.pushed.WSCCachePushedCache;
 import com.novell.nidp.liberty.wsc.cache.pushed.WSCCachePushedCacheSet;
 import com.novell.nidp.liberty.wsf.idsis.ldapservice.schema.LDAPAttributeValue;
 import com.novell.nidp.liberty.wsf.idsis.ldapservice.schema.LDAPUserAttribute;
+import si.genlan.nam.constants.AttributesQueryConstants;
+import si.genlan.nam.idp.Tracer;
 
 import java.util.*;
 
@@ -40,37 +42,37 @@ public class SamlResponseService {
             if(subject != null)
             {
                 WSCCachePushedCache cache = cacheService.getPushedCache(m_Session);
-                Iterator<WSCCachePushedCacheSet> iterator = cache.iterator();
-                while(iterator.hasNext())
+                Iterator<WSCCachePushedCacheSet> pushedCacheSetIterator = cache.iterator();
+                while(pushedCacheSetIterator.hasNext())
                 {
-                    WSCCachePushedCacheSet xy = iterator.next();
-                    tracer.trace(xy.toString());
-                    for (WSCCacheEntry xyEntry : xy.getEntries()) {
-                        tracer.trace("Select String: "+xyEntry.getSelectString()); //Get Select String
+                    WSCCachePushedCacheSet pushedCacheSet = pushedCacheSetIterator.next();
+                    tracer.trace(pushedCacheSet.toString());
+                    for (WSCCacheEntry cacheEntry : pushedCacheSet.getEntries()) {
+                        tracer.trace("Select String: "+cacheEntry.getSelectString()); //Get Select String
 
-                        String str1  = xyEntry.getSelectString();
+                        String str1  = cacheEntry.getSelectString();
                         str1 = str1.replace("/UserAttribute[@ldap:targetAttribute=\"", ""); //GETTING ATTRIBUTE NAME
                         str1 = str1.replace("\"]", ""); //GETTING ATTRIBUTE NAME
-                        //tracer.trace("Data Item Class" + xyEntry.getDataItemValue().getClass());
-                        if(xyEntry.getDataItemValue() instanceof LDAPUserAttribute) {
+                        //tracer.trace("Data Item Class" + cacheEntry.getDataItemValue().getClass());
+                        if(cacheEntry.getDataItemValue() instanceof LDAPUserAttribute) {
 
-                            LDAPUserAttribute ldapAttr = (LDAPUserAttribute) xyEntry.getDataItemValue(); //CHANGING INTO RIGHT CLASS
-                            Iterator<LDAPAttributeValue> values = ldapAttr.getValues(); //GETS ALL VALUES FROM LDAP
+                            LDAPUserAttribute ldapUserAttribute = (LDAPUserAttribute) cacheEntry.getDataItemValue(); //CHANGING INTO RIGHT CLASS
+                            Iterator<LDAPAttributeValue> values = ldapUserAttribute.getValues(); //GETS ALL VALUES FROM LDAP
 
                             if (values != null) {
                                 List<String> valuesList = new ArrayList<>();
                                 valuesList.clear();
                                 while (values.hasNext()) {
 
-                                    LDAPAttributeValue val = values.next(); //GET VALUE
-                                    valuesList.add(val.getValue());
-                                    tracer.trace("Adding LDAP Attribute: " + str1 + " LDAP Value : " + val.getValue());
+                                    LDAPAttributeValue ldapAttributeValue = values.next(); //GET VALUE
+                                    valuesList.add(ldapAttributeValue.getValue());
+                                    tracer.trace("Adding LDAP Attribute: " + str1 + " LDAP Value : " + ldapAttributeValue.getValue());
                                 }
                                 objectObjectHashMap.put(str1, valuesList);
                             }
                         }
                         else
-                            tracer.trace("Not instance of LDAPUserAttribute but: " + xyEntry.getDataItemValue().getClass());
+                            tracer.trace("Not instance of LDAPUserAttribute but: " + cacheEntry.getDataItemValue().getClass());
                     }
                 }
             }

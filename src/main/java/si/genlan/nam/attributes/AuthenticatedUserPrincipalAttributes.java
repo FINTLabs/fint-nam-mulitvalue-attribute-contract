@@ -1,9 +1,11 @@
-package si.genlan.nam.idp;
+package si.genlan.nam.attributes;
 
 import com.novell.nidp.NIDPConstants;
 import com.novell.nidp.NIDPPrincipal;
 import com.novell.nidp.NIDPSession;
 import com.novell.nidp.NIDPSubject;
+import si.genlan.nam.idp.Tracer;
+import si.genlan.nam.idp.UpdateUserStoreBySamlResponseContract;
 
 import javax.naming.directory.Attributes;
 import javax.servlet.http.HttpServletRequest;

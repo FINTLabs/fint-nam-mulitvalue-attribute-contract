@@ -1,5 +1,8 @@
-package si.genlan.nam.idp;
+package si.genlan.nam.utils;
 
+import javax.naming.NamingEnumeration;
+import javax.naming.NamingException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -18,5 +21,12 @@ public class ListUtils {
         }
 
         return one.equals(two);
+    }
+    public static List<String> EnumToStringList(NamingEnumeration<?> enumeration) throws NamingException {
+        List<String> list = new ArrayList<>();
+        while(enumeration.hasMore())
+            list.add(enumeration.next().toString());
+
+        return list;
     }
 }

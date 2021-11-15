@@ -1,6 +1,7 @@
-package si.genlan.nam.idp;
+package si.genlan.nam.repositories;
 
 import lombok.Getter;
+import si.genlan.nam.attributes.SamlResponseAttribute;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -1,4 +1,4 @@
-package si.genlan.nam.idp;
+package si.genlan.nam.attributes;
 
 import lombok.Data;
 import org.jetbrains.annotations.NotNull;

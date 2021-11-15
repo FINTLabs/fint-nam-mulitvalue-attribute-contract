@@ -34,6 +34,7 @@ dependencies {
 
     implementation name: 'nidp'
     implementation name: 'NAMCommon'
+    implementation 'org.jetbrains:annotations:20.1.0'
 
     compileOnly 'org.apache.tomcat:catalina:6.0.16'
     compileOnly 'javax.servlet:servlet-api:2.5'

@@ -1,14 +1,17 @@
-package si.genlan.nam.idp;
+package si.genlan.nam.repositories;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import si.genlan.nam.utils.ArrayUtils;
+import si.genlan.nam.idp.Tracer;
 
 import javax.naming.Context;
 import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
 import javax.naming.directory.*;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
 
 @Data
@@ -21,11 +24,18 @@ public class LdapUserStoreRepository {
     private String securityCredentials;
     private String matchingAttributeName;
 
-    @Builder.Default
+
     private DirContext ldapConnection=null;
     private Tracer tracer;
 
+    @Builder
     public LdapUserStoreRepository() {
+        tracer.trace("Constructing new LDAP Class");
+
+
+    }
+    public void Connect(){
+        tracer.trace("Constructing new LDAP Connection");
         Properties env = new Properties();
         env.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory");
         env.put(Context.PROVIDER_URL, providerUrl);
@@ -42,30 +52,30 @@ public class LdapUserStoreRepository {
         } catch (NamingException e) {
             e.printStackTrace();
         }
-
     }
 
     public void updateUser(String name, ModificationItem[] modificationItems) throws NamingException {
         ldapConnection.modifyAttributes(name, modificationItems);
     }
 
-    public String[] getAttributeValues(NamingEnumeration<?> attributes) throws NamingException {
+    public String[] getAttributeValues(List<String> attributes) throws NamingException {
         String[] multivalueStoreArray = new String[0];
-        while (attributes.hasMore()) {
-            String val = attributes.next().toString();
-            tracer.trace("Adding attribute " + val);
-            multivalueStoreArray = Arrays.copyOf(multivalueStoreArray, multivalueStoreArray.length + 1);
-            multivalueStoreArray[multivalueStoreArray.length - 1] = val;
+        tracer.trace("GetAttributeValues Array String");
+        for(String s : attributes)
+        {
+            tracer.trace("Adding attribute " + s);
+            multivalueStoreArray = ArrayUtils.addToStringArray(multivalueStoreArray, s);
         }
         System.out.println("LDAP Store Array Out: " + Arrays.toString(multivalueStoreArray));
         return multivalueStoreArray;
     }
 
-    public StringBuilder getAttributeValuesString(NamingEnumeration<?> attributes) throws NamingException {
+    public StringBuilder getAttributeValuesString(List<String> attributes) throws NamingException {
         StringBuilder multivalueStore = new StringBuilder();
-        while (attributes.hasMore()) {
-            String val = attributes.next().toString();
-            multivalueStore.append(val).append("; ");
+        for(String s: attributes)
+        {
+            tracer.trace("Getting String values LDAP");
+            multivalueStore.append(s).append("; ");
         }
 
         return multivalueStore;
@@ -88,8 +98,8 @@ public class LdapUserStoreRepository {
     public ModificationItem[] AttributeValuesToDeleteFromUserStore(String[] responseAttributeValues, String[] userStoreAttributeValues, String attributeName)
     {
         ModificationItem[] mods = new ModificationItem[0];
-        for (String s : responseAttributeValues) {
-            if (!(Arrays.asList(userStoreAttributeValues).contains(s))) {
+        for (String s : userStoreAttributeValues) {
+            if (!(Arrays.asList(responseAttributeValues).contains(s))) {
                 mods = Arrays.copyOf(mods, mods.length + 1);
                 mods[mods.length - 1] = new ModificationItem(DirContext.REMOVE_ATTRIBUTE,
                         new BasicAttribute(attributeName, s));
