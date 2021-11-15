@@ -32,6 +32,14 @@ public class Tracer {
             System.out.println(createLogMessage(messages));
         }
     }
+    public void traceBreak(int numberOfBreaks)
+    {
+        if(trace)
+        {
+            for(int i=0; i<numberOfBreaks; i++)
+                System.out.println("\n");
+        }
+    }
     public boolean equalName(String appName)
     {
         return appName.equals(applicationName);

@@ -60,13 +60,10 @@ public class LdapUserStoreRepository {
 
     public String[] getAttributeValues(List<String> attributes) throws NamingException {
         String[] multivalueStoreArray = new String[0];
-        tracer.trace("GetAttributeValues Array String");
         for(String s : attributes)
         {
-            tracer.trace("Adding attribute " + s);
             multivalueStoreArray = ArrayUtils.addToStringArray(multivalueStoreArray, s);
         }
-        System.out.println("LDAP Store Array Out: " + Arrays.toString(multivalueStoreArray));
         return multivalueStoreArray;
     }
 
@@ -74,7 +71,6 @@ public class LdapUserStoreRepository {
         StringBuilder multivalueStore = new StringBuilder();
         for(String s: attributes)
         {
-            tracer.trace("Getting String values LDAP");
             multivalueStore.append(s).append("; ");
         }
 
@@ -89,6 +85,7 @@ public class LdapUserStoreRepository {
                 mods = Arrays.copyOf(mods, mods.length + 1);
                 mods[mods.length - 1] = new ModificationItem(DirContext.ADD_ATTRIBUTE,
                         new BasicAttribute(attributeName, s));
+                tracer.trace("Adding value " + s + " to attribute " + attributeName);
 
             }
         }
@@ -103,6 +100,7 @@ public class LdapUserStoreRepository {
                 mods = Arrays.copyOf(mods, mods.length + 1);
                 mods[mods.length - 1] = new ModificationItem(DirContext.REMOVE_ATTRIBUTE,
                         new BasicAttribute(attributeName, s));
+                tracer.trace("Removing value " + s + " from attribute " + attributeName);
 
             }
         }
