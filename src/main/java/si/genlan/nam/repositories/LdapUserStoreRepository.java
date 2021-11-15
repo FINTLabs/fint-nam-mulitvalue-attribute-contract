@@ -3,13 +3,15 @@ package si.genlan.nam.repositories;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import si.genlan.nam.utils.ArrayUtils;
 import si.genlan.nam.idp.Tracer;
+import si.genlan.nam.utils.ArrayUtils;
 
 import javax.naming.Context;
-import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
-import javax.naming.directory.*;
+import javax.naming.directory.BasicAttribute;
+import javax.naming.directory.DirContext;
+import javax.naming.directory.InitialDirContext;
+import javax.naming.directory.ModificationItem;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
@@ -28,12 +30,6 @@ public class LdapUserStoreRepository {
     private DirContext ldapConnection=null;
     private Tracer tracer;
 
-    @Builder
-    public LdapUserStoreRepository() {
-        tracer.trace("Constructing new LDAP Class");
-
-
-    }
     public void Connect(){
         tracer.trace("Constructing new LDAP Connection");
         Properties env = new Properties();
@@ -67,17 +63,7 @@ public class LdapUserStoreRepository {
         return multivalueStoreArray;
     }
 
-    public StringBuilder getAttributeValuesString(List<String> attributes) throws NamingException {
-        StringBuilder multivalueStore = new StringBuilder();
-        for(String s: attributes)
-        {
-            multivalueStore.append(s).append("; ");
-        }
-
-        return multivalueStore;
-    }
-
-    public ModificationItem[] AttributeValuesToAddFromUserStore(String[] responseAttributeValues, String[] userStoreAttributeValues, String attributeName)
+    public ModificationItem[] AttributeValuesToAddToUserStore(String[] responseAttributeValues, String[] userStoreAttributeValues, String attributeName)
     {
         ModificationItem[] mods = new ModificationItem[0];
         for (String s : responseAttributeValues) {
@@ -107,28 +93,4 @@ public class LdapUserStoreRepository {
         return mods;
     }
 
-    public void MatchUser(String LDAPMatchingAttributeValue) throws NamingException {
-        String searchFilter = "(&(mail="+LDAPMatchingAttributeValue+"))";
-        String[] requiredAttributes = {"mail"};
-
-        SearchControls controls = new SearchControls();
-        controls.setSearchScope(SearchControls.SUBTREE_SCOPE);
-        controls.setReturningAttributes(requiredAttributes);
-        NamingEnumeration users;
-        if(ldapConnection != null) {
-            users = ldapConnection.search("o=Test", searchFilter, controls);
-            SearchResult result = null;
-            while(users.hasMore())
-            {
-                Attributes attr = result.getAttributes();
-                String name = attr.get("cn").get(0).toString();
-                System.out.println("Cn: "+attr.get("cn"));
-                System.out.println("Sn: "+attr.get("sn"));
-            }
-        }
-        else
-            tracer.trace("Ldap connection null");
-
-
-    }
 }

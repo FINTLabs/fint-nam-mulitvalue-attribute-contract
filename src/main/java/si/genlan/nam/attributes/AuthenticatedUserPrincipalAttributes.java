@@ -1,14 +1,11 @@
 package si.genlan.nam.attributes;
 
-import com.novell.nidp.NIDPConstants;
 import com.novell.nidp.NIDPPrincipal;
 import com.novell.nidp.NIDPSession;
 import com.novell.nidp.NIDPSubject;
 import si.genlan.nam.idp.Tracer;
 import si.genlan.nam.idp.UpdateUserStoreBySamlResponseContract;
 
-import javax.naming.directory.Attributes;
-import javax.servlet.http.HttpServletRequest;
 import java.util.Properties;
 
 public class AuthenticatedUserPrincipalAttributes {
@@ -24,22 +21,7 @@ public class AuthenticatedUserPrincipalAttributes {
         return idpPrincipal;
     }
 
-    public void getUserPrincipalAttributes(HttpServletRequest m_Request, Tracer tracer, UpdateUserStoreBySamlResponseContract authenticationContract) {
-        Attributes attr;
-        String[] attrNames = {"sn", "mail"};
-
-        String id = m_Request.getParameter(NIDPConstants.PARM_USERID);
-        String saml2 = m_Request.getParameter(NIDPConstants.SAML2);
-        tracer.trace("getUPA: id: " + id);
-        tracer.trace("getUPA: saml2: " + saml2);
-        attr = authenticationContract.getPrincipalAttributesPublic(attrNames);
-        if (attr != null)
-            tracer.trace("Principal attebiutes length: " + attr.size());
-        else
-            tracer.trace("No principal attributes found");
-    }
-
-    public NIDPPrincipal getContractUser(Properties m_Properties, Tracer tracer) {
+    private NIDPPrincipal getContractUser(Properties m_Properties, Tracer tracer) {
         NIDPPrincipal contractUser = (NIDPPrincipal) m_Properties.get("Principal");
         if (contractUser != null) {
             tracer.trace("Found contract authenticated user: ", contractUser.getUserIdentifier());
@@ -47,7 +29,7 @@ public class AuthenticatedUserPrincipalAttributes {
         return contractUser;
     }
 
-    public NIDPPrincipal getSessionUser(NIDPSession m_Session, Tracer tracer) {
+    private NIDPPrincipal getSessionUser(NIDPSession m_Session, Tracer tracer) {
         if (m_Session.isAuthenticated()) {
             NIDPPrincipal[] idpPrincipalList = m_Session.getSubject().getPrincipals();
             if (idpPrincipalList.length == 1) {

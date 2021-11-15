@@ -22,7 +22,6 @@ import java.util.Properties;
 
 public class UpdateUserStoreBySamlResponseContract extends LocalAuthenticationClass {
 
-    public static String matchingAttribute;
     private final Tracer tracer;
     private final String sessionUser;
     private final LdapUserStoreRepository ldapUserStoreRepository;
@@ -34,11 +33,9 @@ public class UpdateUserStoreBySamlResponseContract extends LocalAuthenticationCl
         userPrincipalAttributes = new AuthenticatedUserPrincipalAttributes();
         tracer = Tracer.getInstance(getProperty(AttributesQueryConstants.PROP_NAME_TRACE), "UpdateUserStore GenLan");
         String version = UpdateUserStoreBySamlResponseContract.class.getPackage().getImplementationVersion();
-        matchingAttribute = getProperty(AttributesQueryConstants.PROP_NAME_MATCHING_NAME);
 
         NIDPLog.logAppFine(String.format("Tracer is enabled: %s. Version: %s", tracer.getTracing(), version));
         NIDPLog.logAppFine(String.format("Tracing Property: %s. Value: %s", AttributesQueryConstants.PROP_NAME_TRACE, getProperty(AttributesQueryConstants.PROP_NAME_TRACE)));
-        tracer.trace("Reading attributes Class Initialized. Matching Attribute/s: " + matchingAttribute);
 
         BasicParserPool parsers = new BasicParserPool();
         parsers.setNamespaceAware(true);
@@ -118,11 +115,9 @@ public class UpdateUserStoreBySamlResponseContract extends LocalAuthenticationCl
 
                             ModificationItem[] mods;
 
-                            //REMOVE ATTRIBUTE VALUE FROM USER STORE IF NOT IN SAML RESPONSE
-                            //region REMOVE_ATTRIBUTE
                             if (!ListUtils.isListsEqual(samlValues, multivaluedStoreArray)) {
 
-                                mods = ldapUserStoreRepository.AttributeValuesToAddFromUserStore(samlValues, multivaluedStoreArray, gotAttribute);
+                                mods = ldapUserStoreRepository.AttributeValuesToAddToUserStore(samlValues, multivaluedStoreArray, gotAttribute);
                                 ldapUserStoreRepository.updateUser(userPath, mods);
 
                                 multivalued = ListUtils.EnumToStringList(attr.getAll());
@@ -132,11 +127,6 @@ public class UpdateUserStoreBySamlResponseContract extends LocalAuthenticationCl
                                     ldapUserStoreRepository.updateUser(userPath, mods);
                                 else
                                     tracer.trace("Nothing to delete from User Store");
-                                /* endregion */
-
-                                //ADD ATTRIBUTE VALUE TO USER STORE IF IN SAML RESPONSE AND NOT IN USER STORE
-
-
                             }
                             else
                                 tracer.trace("Remote values and our directory values are same!");
