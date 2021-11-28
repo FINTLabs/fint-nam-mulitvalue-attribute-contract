@@ -56,7 +56,7 @@ public class SamlServlet extends NIDPServlet {
                         for (int j = 0; j < children.getLength(); j++) {
                             String childValue = children.item(j).getTextContent();
                             tracer.trace("readAttributesServlet: doPost(): Adding into svar: " + childValue);
-                            UpdateUserStoreBySamlResponseContract.samlRequestVariableList.getSamlRequests().add(new SamlRequest(childValue, respMsg));
+                            UpdateUserStoreBySamlResponseContract.samlRequestRepository.getSamlRequests().add(new SamlRequest(childValue, respMsg));
                         }
                     }
 
@@ -72,7 +72,7 @@ public class SamlServlet extends NIDPServlet {
                         for (int j = 0; j < children.getLength(); j++) {
                             String childValue = children.item(j).getTextContent();
                             tracer.trace("readAttributesServlet: doPost(): Adding into svar: " + childValue);
-                            UpdateUserStoreBySamlResponseContract.samlRequestVariableList.getSamlRequests().add(new SamlRequest(childValue, respMsg));
+                            UpdateUserStoreBySamlResponseContract.samlRequestRepository.getSamlRequests().add(new SamlRequest(childValue, respMsg));
                         }
                     }
 

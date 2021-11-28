@@ -22,7 +22,7 @@ public class UpdateUserStoreBySamlResponseContract extends LocalAuthenticationCl
     private final LdapUserStoreRepository ldapUserStoreRepository;
     private final SamlResponseAttributeRepository attributeRepository;
 
-    public static SamlRequestVariableList samlRequestVariableList = new SamlRequestVariableList();
+    public static SamlRequestRepository samlRequestRepository = new SamlRequestRepository();
 
     public UpdateUserStoreBySamlResponseContract(Properties props, ArrayList<UserAuthority> arrayList) {
         super(props, arrayList);
@@ -31,7 +31,7 @@ public class UpdateUserStoreBySamlResponseContract extends LocalAuthenticationCl
         String version = UpdateUserStoreBySamlResponseContract.class.getPackage().getImplementationVersion();
         matchingAttribute = getProperty(AttributesQueryConstants.PROP_NAME_MATCHING_NAME);
 
-        NIDPLog.logAppFine(String.format("Tracer is enabled: %s. Version: %s" + tracer.getTracing(), version));
+        NIDPLog.logAppFine(String.format("Tracer is enabled: %s. Version: %s", tracer.getTracing(), version));
         tracer.trace("Reading Attributes Class Initialized. Matching Attribute/s: " + matchingAttribute);
 
         BasicParserPool parsers = new BasicParserPool();
@@ -43,7 +43,8 @@ public class UpdateUserStoreBySamlResponseContract extends LocalAuthenticationCl
                 .securityPrincipal(getProperty(AttributesQueryConstants.PROP_NAME_LDAP_USER_PARAMETER))
                 .providerUrl(getProperty(AttributesQueryConstants.PROP_NAME_LDAP_URL))
                 .tracer(tracer)
-                .build();
+                .build()
+                .connect();
 
         attributeRepository = new SamlResponseAttributeRepository();
 
@@ -51,6 +52,17 @@ public class UpdateUserStoreBySamlResponseContract extends LocalAuthenticationCl
 
         sessionUser = getProperty("findSessionUser");
 
+    }
+
+    public UpdateUserStoreBySamlResponseContract(Properties properties,
+                                                 LdapUserStoreRepository ldapUserStoreRepository,
+                                                 SamlResponseAttributeRepository samlResponseAttributeRepository) {
+        super(properties, new ArrayList<>());
+
+        tracer = Tracer.getInstance(getProperty(AttributesQueryConstants.PROP_NAME_TRACE));
+        sessionUser = getProperty("findSessionUser");
+        this.ldapUserStoreRepository = ldapUserStoreRepository;
+        this.attributeRepository = samlResponseAttributeRepository;
     }
 
 
@@ -62,11 +74,6 @@ public class UpdateUserStoreBySamlResponseContract extends LocalAuthenticationCl
                         + attr.getAttributeValues())
         );
     }
-
-
-
-
-
 
 
     protected int doAuthenticate() {
@@ -86,9 +93,9 @@ public class UpdateUserStoreBySamlResponseContract extends LocalAuthenticationCl
                 );
 
                 Attribute matchingAttribute = attributes.get(getProperty(AttributesQueryConstants.PROP_NAME_MATCHING_NAME));
-                samlResponse = samlRequestVariableList.getLast((String) matchingAttribute.get());                                                                                            // matching
+                samlResponse = samlRequestRepository.getLast((String) matchingAttribute.get());                                                                                            // matching
 
-                samlRequestVariableList.removeRequestsOlderThan5Minutes();
+                samlRequestRepository.removeRequestsOlderThan5Minutes();
                 tracer.trace("doAuthenticate: MatchingAttr: " + UpdateUserStoreBySamlResponseContract.matchingAttribute + " -> " + matchingAttribute.get());
 
                 tracer.trace("doAuthenticate samlResponse: " + samlResponse);
@@ -192,7 +199,7 @@ public class UpdateUserStoreBySamlResponseContract extends LocalAuthenticationCl
         boolean auth = validAuthentication();
         tracer.trace("doAuthenticate: ValidAuthentication:" + auth);
 
-        samlRequestVariableList.removeSamlRequest(samlResponse);
+        samlRequestRepository.removeSamlRequest(samlResponse);
 
         return AUTHENTICATED;
     }

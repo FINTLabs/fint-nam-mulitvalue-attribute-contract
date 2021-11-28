@@ -25,7 +25,7 @@ public class LdapUserStoreRepository {
     private DirContext ldapConnection = null;
     private Tracer tracer;
 
-    public LdapUserStoreRepository() {
+    public LdapUserStoreRepository connect() {
         Properties env = new Properties();
         env.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory");
         env.put(Context.PROVIDER_URL, providerUrl);
@@ -35,9 +35,10 @@ public class LdapUserStoreRepository {
         try {
             ldapConnection = new InitialDirContext(env);
             tracer.trace("newConnection: LDAP Connection Established: " + ldapConnection);
-
+            return this;
         } catch (NamingException e) {
             e.printStackTrace();
+            return null;
         }
     }
 

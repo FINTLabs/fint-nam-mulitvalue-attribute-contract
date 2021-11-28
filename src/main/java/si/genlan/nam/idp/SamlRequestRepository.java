@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Data
-public class SamlRequestVariableList {
+public class SamlRequestRepository {
     private List<SamlRequest> samlRequests = new ArrayList<>();
 
     public void add(SamlRequest saml) {
@@ -18,11 +18,13 @@ public class SamlRequestVariableList {
         long timeNow = System.currentTimeMillis();
         ArrayList<SamlRequest> toDelete = new ArrayList<SamlRequest>();
         for (SamlRequest req : samlRequests) {
-            if ((timeNow - req.timeAdded) > (5 * 60 * 1000))
+            if ((timeNow - req.timeAdded) > (5 * 60 * 1000)) {
                 toDelete.add(req);
+            }
         }
-        for (SamlRequest req : toDelete)
+        for (SamlRequest req : toDelete) {
             samlRequests.remove(req);
+        }
     }
 
     public String getLast(String keyName) {
