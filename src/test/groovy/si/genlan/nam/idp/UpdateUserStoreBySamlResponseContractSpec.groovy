@@ -1,6 +1,7 @@
 package si.genlan.nam.idp
 
-import com.novell.nidp.common.authority.UserAuthority
+import si.genlan.nam.repositories.LdapUserStoreRepository
+import si.genlan.nam.repositories.SamlResponseAttributeRepository
 import spock.lang.Specification
 import javax.servlet.http.HttpServletRequest
 

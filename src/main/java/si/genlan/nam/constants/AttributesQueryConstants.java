@@ -1,4 +1,4 @@
-package si.genlan.nam.idp;
+package si.genlan.nam.constants;
 
 public class AttributesQueryConstants {
     public final static String PROP_NAME_LDAP_URL = "ldapURL";

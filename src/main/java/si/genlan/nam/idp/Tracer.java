@@ -43,6 +43,13 @@ public class Tracer {
 
     }
 
+    public void lineBreak(int numberOfBreaks) {
+        if (trace) {
+            for (int i = 0; i < numberOfBreaks; i++)
+                System.out.println("\n");
+        }
+    }
+
     private String createLogMessage(String... messages) {
         StringBuilder logMessage = new StringBuilder();
         for (String message : messages) {

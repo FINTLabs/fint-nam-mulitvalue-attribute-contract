@@ -16,7 +16,7 @@ public class SamlRequestRepository {
 
     public void removeRequestsOlderThan5Minutes() {
         long timeNow = System.currentTimeMillis();
-        ArrayList<SamlRequest> toDelete = new ArrayList<SamlRequest>();
+        ArrayList<SamlRequest> toDelete = new ArrayList<>();
         for (SamlRequest req : samlRequests) {
             if ((timeNow - req.timeAdded) > (5 * 60 * 1000)) {
                 toDelete.add(req);
@@ -36,17 +36,17 @@ public class SamlRequestRepository {
         return null;
     }
 
-    public void removeFromUser(String userId) {
-        ArrayList<SamlRequest> toDelete = new ArrayList<SamlRequest>();
-        for (SamlRequest req : samlRequests) {
-            if (req.identifier.equals(userId)) {
-                toDelete.add(req);
-            }
-        }
-        for (SamlRequest req : toDelete)
-            samlRequests.remove(req);
-
-    }
+//    public void removeFromUser(String userId) {
+//        ArrayList<SamlRequest> toDelete = new ArrayList<SamlRequest>();
+//        for (SamlRequest req : samlRequests) {
+//            if (req.identifier.equals(userId)) {
+//                toDelete.add(req);
+//            }
+//        }
+//        for (SamlRequest req : toDelete)
+//            samlRequests.remove(req);
+//
+//    }
 
     public void removeSamlRequest(String saml) {
 

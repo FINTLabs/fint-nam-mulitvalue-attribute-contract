@@ -1,5 +1,6 @@
 package si.genlan.nam.idp
 
+import si.genlan.nam.utils.ListUtils
 import spock.lang.Specification
 
 class ListUtilsSpec extends Specification {

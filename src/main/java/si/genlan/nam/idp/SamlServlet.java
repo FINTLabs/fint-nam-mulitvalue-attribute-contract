@@ -6,6 +6,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
+import si.genlan.nam.attributes.SamlResponseAttribute;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -25,7 +26,7 @@ public class SamlServlet extends NIDPServlet {
     public SamlServlet() {
         super();
         tracer = Tracer.getInstance("true");
-        matchingAttr = UpdateUserStoreBySamlResponseContract.matchingAttribute;
+        matchingAttr = null; //UpdateUserStoreBySamlResponseContract.matchingAttribute;
     }
 
     public void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException {
@@ -56,7 +57,9 @@ public class SamlServlet extends NIDPServlet {
                         for (int j = 0; j < children.getLength(); j++) {
                             String childValue = children.item(j).getTextContent();
                             tracer.trace("readAttributesServlet: doPost(): Adding into svar: " + childValue);
-                            UpdateUserStoreBySamlResponseContract.samlRequestRepository.getSamlRequests().add(new SamlRequest(childValue, respMsg));
+
+                            // TODO: 29/11/2021 This needs refactoring
+                            //  UpdateUserStoreBySamlResponseContract.samlRequestVariableList.getSamlRequests().add(new SamlRequest(childValue, respMsg));
                         }
                     }
 
@@ -72,7 +75,9 @@ public class SamlServlet extends NIDPServlet {
                         for (int j = 0; j < children.getLength(); j++) {
                             String childValue = children.item(j).getTextContent();
                             tracer.trace("readAttributesServlet: doPost(): Adding into svar: " + childValue);
-                            UpdateUserStoreBySamlResponseContract.samlRequestRepository.getSamlRequests().add(new SamlRequest(childValue, respMsg));
+
+                            // TODO: 29/11/2021 This needs refactoring
+                            //  UpdateUserStoreBySamlResponseContract.samlRequestVariableList.getSamlRequests().add(new SamlRequest(childValue, respMsg));
                         }
                     }
 

@@ -1,38 +1,56 @@
 package si.genlan.nam.idp;
 
-import com.novell.nidp.*;
+import com.novell.nidp.NIDPPrincipal;
 import com.novell.nidp.authentication.local.LocalAuthenticationClass;
 import com.novell.nidp.common.authority.UserAuthority;
 import com.novell.nidp.logging.NIDPLog;
-import org.apache.catalina.connector.RequestFacade;
+import lombok.Data;
+import lombok.Getter;
 import org.opensaml.xml.parse.BasicParserPool;
+import si.genlan.nam.attributes.AuthenticatedUserPrincipalAttributes;
+import si.genlan.nam.attributes.SamlResponseAttribute;
+import si.genlan.nam.constants.AttributesQueryConstants;
+import si.genlan.nam.repositories.LdapUserStoreRepository;
+import si.genlan.nam.repositories.SamlResponseAttributeRepository;
+import si.genlan.nam.services.SamlResponseService;
+import si.genlan.nam.utils.ListUtils;
 
-import javax.naming.NamingEnumeration;
-import javax.naming.directory.*;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.util.*;
+import javax.naming.directory.Attribute;
+import javax.naming.directory.Attributes;
+import javax.naming.directory.ModificationItem;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Properties;
 
+@Getter
 public class UpdateUserStoreBySamlResponseContract extends LocalAuthenticationClass {
 
     private final Tracer tracer;
     private final String sessionUser;
-    public static String matchingAttribute;
-
     private final LdapUserStoreRepository ldapUserStoreRepository;
     private final SamlResponseAttributeRepository attributeRepository;
 
     public static SamlRequestRepository samlRequestRepository = new SamlRequestRepository();
+    private AuthenticatedUserPrincipalAttributes userPrincipalAttributes;
 
     public UpdateUserStoreBySamlResponseContract(Properties props, ArrayList<UserAuthority> arrayList) {
         super(props, arrayList);
 
+        userPrincipalAttributes = new AuthenticatedUserPrincipalAttributes();
         tracer = Tracer.getInstance(getProperty(AttributesQueryConstants.PROP_NAME_TRACE));
         String version = UpdateUserStoreBySamlResponseContract.class.getPackage().getImplementationVersion();
-        matchingAttribute = getProperty(AttributesQueryConstants.PROP_NAME_MATCHING_NAME);
 
         NIDPLog.logAppFine(String.format("Tracer is enabled: %s. Version: %s", tracer.getTracing(), version));
-        tracer.trace("Reading Attributes Class Initialized. Matching Attribute/s: " + matchingAttribute);
+        //tracer.trace("Reading Attributes Class Initialized. Matching Attribute/s: " + matchingAttribute);
+        NIDPLog.logAppFine(String.format("Tracer is enabled: %s. Version: %s", tracer.getTracing(), version));
+        NIDPLog.logAppFine(
+                String.format(
+                        "Tracing Property: %s. Value: %s",
+                        AttributesQueryConstants.PROP_NAME_TRACE,
+                        getProperty(AttributesQueryConstants.PROP_NAME_TRACE)
+                )
+        );
 
         BasicParserPool parsers = new BasicParserPool();
         parsers.setNamespaceAware(true);
@@ -42,10 +60,9 @@ public class UpdateUserStoreBySamlResponseContract extends LocalAuthenticationCl
                 .securityCredentials(getProperty(AttributesQueryConstants.PROP_NAME_LDAP_PASSWORD_PARAMETER))
                 .securityPrincipal(getProperty(AttributesQueryConstants.PROP_NAME_LDAP_USER_PARAMETER))
                 .providerUrl(getProperty(AttributesQueryConstants.PROP_NAME_LDAP_URL))
-                .tracer(tracer)
+                .tracer(Tracer.getInstance(Boolean.toString(tracer.getTracing())))
                 .build()
                 .connect();
-
         attributeRepository = new SamlResponseAttributeRepository();
 
         tracer.traceConfig(props);
@@ -67,6 +84,7 @@ public class UpdateUserStoreBySamlResponseContract extends LocalAuthenticationCl
 
 
     private void printList(List<SamlResponseAttribute> list) {
+        tracer.trace("Printing Retrieved attributes");
         list.forEach(attr ->
                 tracer.trace("printList: Attribute "
                         + attr.getName()
@@ -76,13 +94,14 @@ public class UpdateUserStoreBySamlResponseContract extends LocalAuthenticationCl
     }
 
 
+    //@SneakyThrows
     protected int doAuthenticate() {
         tracer.trace("doAuthenticate()");
         String samlResponse = null;
         SamlResponseService samlResponseService = new SamlResponseService(m_Properties);
 
         try {
-            NIDPPrincipal nidpPrincipal = resolveUserPrincipal();
+            NIDPPrincipal nidpPrincipal = userPrincipalAttributes.resolveUserPrincipal(tracer, sessionUser, m_Session, m_Properties, this); //GETS USER PRINCIPAL
             UserAuthority userAuthority = nidpPrincipal.getAuthority();
 
             if (userAuthority != null) {
@@ -92,103 +111,67 @@ public class UpdateUserStoreBySamlResponseContract extends LocalAuthenticationCl
                         new String[]{getProperty(AttributesQueryConstants.PROP_NAME_MATCHING_NAME)}
                 );
 
+                attributeRepository.clear(); //CLEARS ATTRIBUTE REPOSITORY
                 Attribute matchingAttribute = attributes.get(getProperty(AttributesQueryConstants.PROP_NAME_MATCHING_NAME));
                 samlResponse = samlRequestRepository.getLast((String) matchingAttribute.get());                                                                                            // matching
 
                 samlRequestRepository.removeRequestsOlderThan5Minutes();
-                tracer.trace("doAuthenticate: MatchingAttr: " + UpdateUserStoreBySamlResponseContract.matchingAttribute + " -> " + matchingAttribute.get());
+                tracer.trace("doAuthenticate: MatchingAttr: " + matchingAttribute + " -> " + matchingAttribute.get());
 
-                tracer.trace("doAuthenticate samlResponse: " + samlResponse);
-
-                attributeRepository.clear();
                 samlResponseService
-                        .getSamlResponseAttributes(samlResponse)
+                        .getAccessManagerUserAttribute(m_Session)
                         .forEach(attributeRepository::add);
-
 
                 printList(attributeRepository.getAttributes());
 
-                String userPath = getUserPrincipal().getUserIdentifier();
-                String[] gotAttributes = attributeRepository.getArrayOfAttributeNames();
-                attributes = userAuthority.getAttributes(nidpPrincipal, gotAttributes);
+                String userPath = userPrincipalAttributes.getUserPrincipal(getPrincipal(), m_Properties, m_Session, tracer).getUserIdentifier();
 
-                for (String gotAttribute : gotAttributes) {
-                    Attribute attr = attributes.get(gotAttribute);
+                if (userPath != null) {
+                    String[] gotAttributes = attributeRepository.getArrayOfAttributeNames(); //GETS ARRAY OF REMOTE ATTRIBUTES FROM IDP RESPONSE
+                    attributes = userAuthority.getAttributes(nidpPrincipal, gotAttributes); //GETS ALL ATTRIBUTES FROM AUTHENTICATED USER
+                    tracer.lineBreak(2);
+                    tracer.trace("Going through attributes: ");
+                    for (String gotAttribute : gotAttributes) {
+                        Attribute attr = attributes.get(gotAttribute);
+                        tracer.lineBreak(1);
+                        tracer.trace("Attribute Name: " + gotAttribute);
+                        if (attr != null) {
+                            if (attr != null) {
 
-                    if (attr != null) {
-                        NamingEnumeration<?> multivalue = attr.getAll();
-                        StringBuilder multivalueVal = new StringBuilder();
+                                List<String> multivalued = ListUtils.EnumToStringList(attr.getAll());
+                                String[] samlValues = attributeRepository.getValuesAsArrayByAttributeName(gotAttribute);
+                                String[] multivaluedStoreArray = ldapUserStoreRepository.getAttributeValues(multivalued);
 
-                        String[] samlValues = attributeRepository.getValuesAsArrayByAttributeName(gotAttribute);
+                                tracer.trace("Multivalued Array: " + Arrays.toString(multivaluedStoreArray));
+                                tracer.trace("Saml-Values Array: " + Arrays.toString(samlValues));
 
-                        String[] multivalueStoreArray = new String[0];
+                                ModificationItem[] mods;
 
-                        tracer.trace("MultiVal: " + multivalue);
-                        while (multivalue.hasMore()) {
-                            String val = multivalue.next().toString();
-                            multivalueVal.append(val).append("; ");
+                                if (!ListUtils.isListsEqual(samlValues, multivaluedStoreArray)) {
 
-                            multivalueStoreArray = Arrays.copyOf(multivalueStoreArray, multivalueStoreArray.length + 1);
-                            multivalueStoreArray[multivalueStoreArray.length - 1] = val;
-                        }
-                        ModificationItem[] mods = new ModificationItem[0];
-                        if (!ListUtils.isListsEqual(samlValues, multivalueStoreArray)) {
-                            tracer.trace(
-                                    "doAuthenticate: Attribute " + gotAttribute + " SamlValue: " + attributeRepository.getJoinedValueListByName(gotAttribute) + " StoreValue: " + multivalueVal);
-                            tracer.trace("doAuthenticate: Going through multivalue array: " + Arrays.toString(multivalueStoreArray));
-                            for (String s : multivalueStoreArray) {
-                                tracer.trace("doAuthenticate: Attr: " + gotAttribute + "String: " + s);
-                                if (!(Arrays.asList(samlValues).contains(s))) {
-                                    tracer.trace("doAuthenticate: Removing Attribute: " + gotAttribute + " Value: " + s);
-                                    mods = Arrays.copyOf(mods, mods.length + 1);
-                                    mods[mods.length - 1] = new ModificationItem(DirContext.REMOVE_ATTRIBUTE,
-                                            new BasicAttribute(gotAttribute, s));
+                                    mods = ldapUserStoreRepository.AttributeValuesToAddToUserStore(samlValues, multivaluedStoreArray, gotAttribute);
+                                    ldapUserStoreRepository.updateUser(userPath, mods);
 
-                                }
+                                    multivalued = ListUtils.EnumToStringList(attr.getAll());
+                                    multivaluedStoreArray = ldapUserStoreRepository.getAttributeValues(multivalued);
+                                    mods = ldapUserStoreRepository.AttributeValuesToDeleteFromUserStore(samlValues, multivaluedStoreArray, gotAttribute);
+                                    if (mods.length >= 0)
+                                        ldapUserStoreRepository.updateUser(userPath, mods);
+                                    else
+                                        tracer.trace("Nothing to delete from User Store");
+                                } else
+                                    tracer.trace("Remote values and our directory values are same!");
+
+                            } else {
+                                tracer.trace("This Attribute is not define in User Store");
                             }
-                            ldapUserStoreRepository.updateUser(userPath, mods);
 
-                            tracer.trace("doAuthenticate: New multivalue array");
-                            multivalueStoreArray = new String[0];
-                            multivalue = attr.getAll();
-
-                            while (multivalue.hasMore()) {
-                                String val = multivalue.next().toString();
-                                multivalueVal.append(val).append("; ");
-
-                                multivalueStoreArray = Arrays.copyOf(multivalueStoreArray, multivalueStoreArray.length + 1);
-                                multivalueStoreArray[multivalueStoreArray.length - 1] = val;
-                            }
-                            mods = new ModificationItem[0];
-                            tracer.trace("doAuthenticate: Going through saml values");
-                            for (String s : samlValues) {
-                                if (!(Arrays.asList(multivalueStoreArray).contains(s))) {
-                                    tracer.trace("doAuthenticate: Adding Attribute: " + gotAttribute + " Value: " + s);
-                                    mods = Arrays.copyOf(mods, mods.length + 1);
-                                    mods[mods.length - 1] = new ModificationItem(DirContext.ADD_ATTRIBUTE,
-                                            new BasicAttribute(gotAttribute, s));
-
-                                }
-                            }
-                            ldapUserStoreRepository.updateUser(userPath, mods);
                         }
-
-                    } else {
-                        ModificationItem[] mods;
-                        String[] samlValues = attributeRepository.getValuesAsArrayByAttributeName(gotAttribute);
-                        mods = new ModificationItem[0];
-                        tracer.trace("doAuthenticate: Going through saml values");
-                        for (String s : samlValues) {
-                            mods = Arrays.copyOf(mods, mods.length + 1);
-                            mods[mods.length - 1] = new ModificationItem(DirContext.ADD_ATTRIBUTE,
-                                    new BasicAttribute(gotAttribute, s));
-                        }
-                        ldapUserStoreRepository.updateUser(userPath, mods);
                     }
-
+                } else {
+                    tracer.trace("ERROR: User Principal Path not found. Maybe you have not set up your Authentication Class as StepUp Method?");
                 }
             }
-            // tracer.trace("SamlResponse doc: " + samlResp);
         } catch (Exception e) {
             tracer.trace(e.getMessage());
             e.printStackTrace();
@@ -204,8 +187,12 @@ public class UpdateUserStoreBySamlResponseContract extends LocalAuthenticationCl
         return AUTHENTICATED;
     }
 
+    public void setPrincipalPublic(NIDPPrincipal nidpPrincipal) {
+        setPrincipal(nidpPrincipal);
+    }
+
     private boolean validAuthentication() {
-        NIDPPrincipal nidpPrincipal = getUserPrincipal();
+        NIDPPrincipal nidpPrincipal = userPrincipalAttributes.getUserPrincipal(null, null, null, null);
         if (nidpPrincipal != null) {
             String username = nidpPrincipal.getUserIdentifier();
             tracer.trace("validAuthentication: User identifier: " + username);
@@ -218,106 +205,8 @@ public class UpdateUserStoreBySamlResponseContract extends LocalAuthenticationCl
 
     }
 
-    private NIDPPrincipal getUserPrincipal() {
-        NIDPPrincipal idpPrincipal = getPrincipal();
-        if (idpPrincipal == null) {
-            idpPrincipal = getContractUser();
-
-            if (idpPrincipal == null) {
-                idpPrincipal = getSessionUser();
-            }
-        }
-        return idpPrincipal;
+    public Attributes getPrincipalAttributesPublic(String[] strings) {
+        return getPrincipalAttributes(strings);
     }
-
-    private void getUserPrincipalAttributes() {
-        Attributes attr;
-        String[] attrNames = {"sn", "mail"};
-
-        String id = m_Request.getParameter(NIDPConstants.PARM_USERID);
-        String saml2 = m_Request.getParameter(NIDPConstants.SAML2);
-        tracer.trace("getUPA: id: " + id);
-        tracer.trace("getUPA: saml2: " + saml2);
-        attr = getPrincipalAttributes(attrNames);
-        if (attr != null)
-            tracer.trace("Principal attebiutes length: " + attr.size());
-        else
-            tracer.trace("No principal attributes found");
-    }
-
-    private NIDPPrincipal getContractUser() {
-        NIDPPrincipal contractUser = (NIDPPrincipal) m_Properties.get("Principal");
-        if (contractUser != null) {
-            tracer.trace("Found contract authenticated user: ", contractUser.getUserIdentifier());
-        }
-        return contractUser;
-    }
-
-    private NIDPPrincipal getSessionUser() {
-        if (m_Session.isAuthenticated()) {
-            NIDPPrincipal[] idpPrincipalList = m_Session.getSubject().getPrincipals();
-            if (idpPrincipalList.length == 1) {
-                NIDPPrincipal sessionPricipal = idpPrincipalList[0];
-                tracer.trace("getSessionUser: Found session authenticated user: ", sessionPricipal.getUserIdentifier());
-                return sessionPricipal;
-            }
-        }
-        return null;
-    }
-
-    private NIDPPrincipal resolveUserPrincipal() {
-        tracer.trace("resolveUserPrincipal: getting principal from properties (contract)");
-        NIDPPrincipal nidpprincipal = (NIDPPrincipal) m_Properties.get("Principal");
-
-        if (nidpprincipal == null) {
-            tracer.trace("resolveUserPrincipal: getting user from session");
-            if (sessionUser != null) {
-                if (m_Session.isAuthenticated()) {
-                    NIDPSubject nidpsubject = m_Session.getSubject();
-                    NIDPPrincipal[] anidpprincipal = nidpsubject.getPrincipals();
-                    if (anidpprincipal.length == 1) {
-                        nidpprincipal = anidpprincipal[0];
-                        tracer.trace("resolveUserPrincipal: principal retrieved from authenticated session " +
-                                nidpprincipal.getUserIdentifier());
-                        setPrincipal(nidpprincipal);
-                    }
-                }
-                if (nidpprincipal == null)
-                    tracer.trace("resolveUserPrincipal: no principal in session");
-            }
-        } else {
-            tracer.trace("resolveUserPrincipal: retrieved principal from properties " +
-                    nidpprincipal.getUserIdentifier());
-            setPrincipal(nidpprincipal);
-        }
-        return nidpprincipal;
-    }
-
-    public void initializeRequest(HttpServletRequest request, HttpServletResponse response, NIDPSession session,
-                                  NIDPSessionData data, boolean following, String url) {
-
-        super.initializeRequest(request, response, session, data, following, url);
-
-        RequestFacade requestFacade = (RequestFacade) request;
-        Enumeration<String> attributes = requestFacade.getAttributeNames();
-        while (attributes.hasMoreElements()) {
-            String attributeName = attributes.nextElement();
-            Object attributeValue = request.getAttribute(attributeName);
-            tracer.trace("initRequ: attr: " + attributeName + " val: " + attributeValue);
-        }
-        String paramSn = request.getParameter("sn");
-        String attrReq = (String) request.getAttribute("sn");
-        tracer.trace("initializeRequest: Initialize Request: " + request);
-        tracer.trace("initializeRequest: sn: " + attrReq);
-        tracer.trace("initializeRequest: paramSn: " + paramSn);
-        String respMsg = requestFacade.getParameter("SAMLResponse");
-        if (respMsg != null) {
-            tracer.trace("initializeRequest: saml: " + respMsg);
-            // Base64 base64Decoder = new Base64();
-
-        } else
-            tracer.trace("initializeRequest: no saml message");
-    }
-
 
 }

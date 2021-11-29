@@ -1,5 +1,7 @@
 package si.genlan.nam.idp
 
+import si.genlan.nam.attributes.SamlResponseAttribute
+import si.genlan.nam.repositories.SamlResponseAttributeRepository
 import spock.lang.Specification
 
 class SamlResponseAttributeRepositorySpec extends Specification {
