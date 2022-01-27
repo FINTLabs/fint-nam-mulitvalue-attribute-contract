@@ -89,4 +89,9 @@ public class LdapUserStoreRepository {
         }
         return mods;
     }
+
+    public void CompareAndSaveAttributes()
+    {
+
+    }
 }

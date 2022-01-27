@@ -15,6 +15,7 @@ import si.genlan.nam.repositories.SamlResponseAttributeRepository;
 import si.genlan.nam.services.SamlResponseService;
 import si.genlan.nam.utils.ListUtils;
 
+import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
 import javax.naming.directory.ModificationItem;
@@ -31,7 +32,6 @@ public class UpdateUserStoreBySamlResponseContract extends LocalAuthenticationCl
     private final LdapUserStoreRepository ldapUserStoreRepository;
     private final SamlResponseAttributeRepository attributeRepository;
 
-    public static SamlRequestRepository samlRequestRepository = new SamlRequestRepository();
     private AuthenticatedUserPrincipalAttributes userPrincipalAttributes;
 
     public UpdateUserStoreBySamlResponseContract(Properties props, ArrayList<UserAuthority> arrayList) {
@@ -84,7 +84,7 @@ public class UpdateUserStoreBySamlResponseContract extends LocalAuthenticationCl
 
 
     private void printList(List<SamlResponseAttribute> list) {
-        tracer.trace("Printing Retrieved attributes");
+        tracer.trace("Retrieved attributes");
         list.forEach(attr ->
                 tracer.trace("printList: Attribute "
                         + attr.getName()
@@ -98,76 +98,23 @@ public class UpdateUserStoreBySamlResponseContract extends LocalAuthenticationCl
     protected int doAuthenticate() {
         tracer.trace("doAuthenticate()");
         String samlResponse = null;
+        attributeRepository.clear(); //CLEARS ATTRIBUTE REPOSITORY
         SamlResponseService samlResponseService = new SamlResponseService(m_Properties);
 
         try {
             NIDPPrincipal nidpPrincipal = userPrincipalAttributes.resolveUserPrincipal(tracer, sessionUser, m_Session, m_Properties, this); //GETS USER PRINCIPAL
             UserAuthority userAuthority = nidpPrincipal.getAuthority();
 
+            samlResponseService.getAccessManagerUserAttribute(m_Session).forEach(attributeRepository::add);
+
             if (userAuthority != null) {
-
-                Attributes attributes = userAuthority.getAttributes(
-                        nidpPrincipal,
-                        new String[]{getProperty(AttributesQueryConstants.PROP_NAME_MATCHING_NAME)}
-                );
-
-                attributeRepository.clear(); //CLEARS ATTRIBUTE REPOSITORY
-                Attribute matchingAttribute = attributes.get(getProperty(AttributesQueryConstants.PROP_NAME_MATCHING_NAME));
-                samlResponse = samlRequestRepository.getLast((String) matchingAttribute.get());                                                                                            // matching
-
-                samlRequestRepository.removeRequestsOlderThan5Minutes();
-                tracer.trace("doAuthenticate: MatchingAttr: " + matchingAttribute + " -> " + matchingAttribute.get());
-
-                samlResponseService
-                        .getAccessManagerUserAttribute(m_Session)
-                        .forEach(attributeRepository::add);
-
                 printList(attributeRepository.getAttributes());
-
                 String userPath = userPrincipalAttributes.getUserPrincipal(getPrincipal(), m_Properties, m_Session, tracer).getUserIdentifier();
 
                 if (userPath != null) {
                     String[] gotAttributes = attributeRepository.getArrayOfAttributeNames(); //GETS ARRAY OF REMOTE ATTRIBUTES FROM IDP RESPONSE
-                    attributes = userAuthority.getAttributes(nidpPrincipal, gotAttributes); //GETS ALL ATTRIBUTES FROM AUTHENTICATED USER
-                    tracer.lineBreak(2);
-                    tracer.trace("Going through attributes: ");
-                    for (String gotAttribute : gotAttributes) {
-                        Attribute attr = attributes.get(gotAttribute);
-                        tracer.lineBreak(1);
-                        tracer.trace("Attribute Name: " + gotAttribute);
-                        if (attr != null) {
-                            if (attr != null) {
+                    compareAndUpdateAttributes(gotAttributes, userAuthority, nidpPrincipal, userPath);
 
-                                List<String> multivalued = ListUtils.EnumToStringList(attr.getAll());
-                                String[] samlValues = attributeRepository.getValuesAsArrayByAttributeName(gotAttribute);
-                                String[] multivaluedStoreArray = ldapUserStoreRepository.getAttributeValues(multivalued);
-
-                                tracer.trace("Multivalued Array: " + Arrays.toString(multivaluedStoreArray));
-                                tracer.trace("Saml-Values Array: " + Arrays.toString(samlValues));
-
-                                ModificationItem[] mods;
-
-                                if (!ListUtils.isListsEqual(samlValues, multivaluedStoreArray)) {
-
-                                    mods = ldapUserStoreRepository.AttributeValuesToAddToUserStore(samlValues, multivaluedStoreArray, gotAttribute);
-                                    ldapUserStoreRepository.updateUser(userPath, mods);
-
-                                    multivalued = ListUtils.EnumToStringList(attr.getAll());
-                                    multivaluedStoreArray = ldapUserStoreRepository.getAttributeValues(multivalued);
-                                    mods = ldapUserStoreRepository.AttributeValuesToDeleteFromUserStore(samlValues, multivaluedStoreArray, gotAttribute);
-                                    if (mods.length >= 0)
-                                        ldapUserStoreRepository.updateUser(userPath, mods);
-                                    else
-                                        tracer.trace("Nothing to delete from User Store");
-                                } else
-                                    tracer.trace("Remote values and our directory values are same!");
-
-                            } else {
-                                tracer.trace("This Attribute is not define in User Store");
-                            }
-
-                        }
-                    }
                 } else {
                     tracer.trace("ERROR: User Principal Path not found. Maybe you have not set up your Authentication Class as StepUp Method?");
                 }
@@ -177,14 +124,61 @@ public class UpdateUserStoreBySamlResponseContract extends LocalAuthenticationCl
             e.printStackTrace();
         }
 
-        tracer.trace("doAuthenticate: GetUserPrincipal: ");
-        getUserPrincipalAttributes();
         boolean auth = validAuthentication();
         tracer.trace("doAuthenticate: ValidAuthentication:" + auth);
 
-        samlRequestRepository.removeSamlRequest(samlResponse);
-
         return AUTHENTICATED;
+    }
+
+    public void compareAndUpdateAttributes(String[] gotAttributes, UserAuthority userAuthority, NIDPPrincipal nidpPrincipal, String userPath) throws NamingException {
+
+        Attributes attributes = userAuthority.getAttributes(nidpPrincipal, gotAttributes); //GETS ALL ATTRIBUTES FROM AUTHENTICATED USER
+        for (String gotAttribute : gotAttributes) {
+            Attribute attr = attributes.get(gotAttribute);
+            tracer.lineBreak(1);
+            tracer.trace("Attribute Name: " + gotAttribute);
+            if (attr != null) {
+                if (attr != null) {
+
+                    List<String> multivalued = ListUtils.EnumToStringList(attr.getAll());
+                    String[] multivaluedStoreArray = ldapUserStoreRepository.getAttributeValues(multivalued);
+
+                    String[] samlValues = attributeRepository.getValuesAsArrayByAttributeName(gotAttribute);
+
+
+                    tracer.trace("Multivalued Array: " + Arrays.toString(multivaluedStoreArray));
+                    tracer.trace("Saml-Values Array: " + Arrays.toString(samlValues));
+
+                    if (!ListUtils.isListsEqual(samlValues, multivaluedStoreArray)) {
+                        updateUser(samlValues, multivaluedStoreArray, gotAttribute, userPath, attr);
+
+                    } else
+                        tracer.trace("Remote values and our directory values are same!");
+
+                } else {
+                    tracer.trace("This Attribute is not define in User Store");
+                }
+
+            }
+        }
+    }
+    public void updateUser(String[] samlValues, String[] multivaluedStoreArray, String gotAttribute, String userPath, Attribute attr) throws NamingException {
+        ModificationItem[] mods;
+        mods = ldapUserStoreRepository.AttributeValuesToAddToUserStore(samlValues, multivaluedStoreArray, gotAttribute);
+        ldapUserStoreRepository.updateUser(userPath, mods);
+
+        List<String> multivalued = ListUtils.EnumToStringList(attr.getAll());
+        multivaluedStoreArray = ldapUserStoreRepository.getAttributeValues(multivalued);
+        mods = ldapUserStoreRepository.AttributeValuesToDeleteFromUserStore(samlValues, multivaluedStoreArray, gotAttribute);
+        if (mods.length >= 0)
+            ldapUserStoreRepository.updateUser(userPath, mods);
+        else
+            tracer.trace("Nothing to delete from User Store");
+    }
+
+    public void compareAndUpdateAttribute()
+    {
+
     }
 
     public void setPrincipalPublic(NIDPPrincipal nidpPrincipal) {
