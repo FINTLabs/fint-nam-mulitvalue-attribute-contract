@@ -5,6 +5,7 @@ import com.novell.nidp.NIDPSession
 import com.novell.nidp.NIDPSubject
 import com.novell.nidp.common.authority.ldap.LDAPPrincipal
 import com.novell.nidp.common.util.NIDPPrincipalUtils
+import com.sun.jndi.ldap.LdapCtxFactory
 import org.w3c.dom.Element
 import si.genlan.nam.helpers.NIDPPricipalTest
 import si.genlan.nam.idp.Tracer
@@ -49,7 +50,11 @@ class AuthenticatedUserPrincipalAttributesSpec extends Specification {
         principal.getUserIdentifier() == "contractUserIdentifier"
 
     }
-
+    def "New LDAP Con"()
+    {
+        given:
+        def LdapCon = Mock(LdapCtxFactory)
+    }
     def "If NIDPPrincipal and contract user is null session user should be returned"() {
         given:
         def session = Mock(NIDPSession)

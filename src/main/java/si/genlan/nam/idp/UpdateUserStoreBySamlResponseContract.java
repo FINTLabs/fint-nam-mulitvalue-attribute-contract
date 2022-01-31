@@ -34,8 +34,8 @@ public class UpdateUserStoreBySamlResponseContract extends LocalAuthenticationCl
 
     private AuthenticatedUserPrincipalAttributes userPrincipalAttributes;
 
-    public UpdateUserStoreBySamlResponseContract(Properties props, ArrayList<UserAuthority> arrayList) {
-        super(props, arrayList);
+    public UpdateUserStoreBySamlResponseContract(Properties props, ArrayList<UserAuthority> userAuthorityList) {
+        super(props, userAuthorityList);
 
         userPrincipalAttributes = new AuthenticatedUserPrincipalAttributes();
         tracer = Tracer.getInstance(getProperty(AttributesQueryConstants.PROP_NAME_TRACE));
@@ -57,7 +57,7 @@ public class UpdateUserStoreBySamlResponseContract extends LocalAuthenticationCl
         userService = new UserService(tracer.getTracing());
         ldapUserStoreRepository = LdapUserStoreRepository
                 .builder()
-                .securityCredentials(ListUtils.StringToArray(getProperty(AttributesQueryConstants.PROP_NAME_LDAP_PASSWORD_PARAMETER), ";"))
+                .securityCredentials(getProperty(AttributesQueryConstants.PROP_NAME_LDAP_PASSWORD_PARAMETER).split(";"))
                 .securityPrincipal(ListUtils.StringToArray(getProperty(AttributesQueryConstants.PROP_NAME_LDAP_USER_PARAMETER), ";"))
                 .securityProtocol(ListUtils.StringToArray(getProperty(AttributesQueryConstants.PROP_NAME_LDAP_PROTOCOL_PARAMETER), ";"))
                 .providerUrl(ListUtils.StringToArray(getProperty(AttributesQueryConstants.PROP_NAME_LDAP_URL), ";"))
