@@ -4,7 +4,6 @@ import com.novell.nidp.NIDPPrincipal;
 import com.novell.nidp.authentication.local.LocalAuthenticationClass;
 import com.novell.nidp.common.authority.UserAuthority;
 import com.novell.nidp.logging.NIDPLog;
-import lombok.Data;
 import lombok.Getter;
 import org.opensaml.xml.parse.BasicParserPool;
 import si.genlan.nam.attributes.AuthenticatedUserPrincipalAttributes;
@@ -13,12 +12,12 @@ import si.genlan.nam.constants.AttributesQueryConstants;
 import si.genlan.nam.repositories.LdapUserStoreRepository;
 import si.genlan.nam.repositories.SamlResponseAttributeRepository;
 import si.genlan.nam.services.SamlResponseService;
+import si.genlan.nam.services.UserService;
 import si.genlan.nam.utils.ListUtils;
 
 import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
-import javax.naming.directory.ModificationItem;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -31,6 +30,7 @@ public class UpdateUserStoreBySamlResponseContract extends LocalAuthenticationCl
     private final String sessionUser;
     private final LdapUserStoreRepository ldapUserStoreRepository;
     private final SamlResponseAttributeRepository attributeRepository;
+    private UserService userService;
 
     private AuthenticatedUserPrincipalAttributes userPrincipalAttributes;
 
@@ -54,15 +54,15 @@ public class UpdateUserStoreBySamlResponseContract extends LocalAuthenticationCl
 
         BasicParserPool parsers = new BasicParserPool();
         parsers.setNamespaceAware(true);
-
+        userService = new UserService(tracer.getTracing());
         ldapUserStoreRepository = LdapUserStoreRepository
                 .builder()
-                .securityCredentials(getProperty(AttributesQueryConstants.PROP_NAME_LDAP_PASSWORD_PARAMETER))
-                .securityPrincipal(getProperty(AttributesQueryConstants.PROP_NAME_LDAP_USER_PARAMETER))
-                .providerUrl(getProperty(AttributesQueryConstants.PROP_NAME_LDAP_URL))
+                .securityCredentials(ListUtils.StringToArray(getProperty(AttributesQueryConstants.PROP_NAME_LDAP_PASSWORD_PARAMETER), ";"))
+                .securityPrincipal(ListUtils.StringToArray(getProperty(AttributesQueryConstants.PROP_NAME_LDAP_USER_PARAMETER), ";"))
+                .securityProtocol(ListUtils.StringToArray(getProperty(AttributesQueryConstants.PROP_NAME_LDAP_PROTOCOL_PARAMETER), ";"))
+                .providerUrl(ListUtils.StringToArray(getProperty(AttributesQueryConstants.PROP_NAME_LDAP_URL), ";"))
                 .tracer(Tracer.getInstance(Boolean.toString(tracer.getTracing())))
-                .build()
-                .connect();
+                .build();
         attributeRepository = new SamlResponseAttributeRepository();
 
         tracer.traceConfig(props);
@@ -73,7 +73,7 @@ public class UpdateUserStoreBySamlResponseContract extends LocalAuthenticationCl
 
     public UpdateUserStoreBySamlResponseContract(Properties properties,
                                                  LdapUserStoreRepository ldapUserStoreRepository,
-                                                 SamlResponseAttributeRepository samlResponseAttributeRepository) {
+                                                 SamlResponseAttributeRepository samlResponseAttributeRepository, UserService userService) {
         super(properties, new ArrayList<>());
 
         tracer = Tracer.getInstance(getProperty(AttributesQueryConstants.PROP_NAME_TRACE));
@@ -137,7 +137,6 @@ public class UpdateUserStoreBySamlResponseContract extends LocalAuthenticationCl
             Attribute attr = attributes.get(gotAttribute);
             tracer.lineBreak(1);
             tracer.trace("Attribute Name: " + gotAttribute);
-            if (attr != null) {
                 if (attr != null) {
 
                     List<String> multivalued = ListUtils.EnumToStringList(attr.getAll());
@@ -150,36 +149,19 @@ public class UpdateUserStoreBySamlResponseContract extends LocalAuthenticationCl
                     tracer.trace("Saml-Values Array: " + Arrays.toString(samlValues));
 
                     if (!ListUtils.isListsEqual(samlValues, multivaluedStoreArray)) {
-                        updateUser(samlValues, multivaluedStoreArray, gotAttribute, userPath, attr);
+                        userService.updateUser(samlValues, multivaluedStoreArray, gotAttribute, userPath, attr, ldapUserStoreRepository, userPath);
 
                     } else
                         tracer.trace("Remote values and our directory values are same!");
 
                 } else {
                     tracer.trace("This Attribute is not define in User Store");
-                }
+
 
             }
         }
     }
-    public void updateUser(String[] samlValues, String[] multivaluedStoreArray, String gotAttribute, String userPath, Attribute attr) throws NamingException {
-        ModificationItem[] mods;
-        mods = ldapUserStoreRepository.AttributeValuesToAddToUserStore(samlValues, multivaluedStoreArray, gotAttribute);
-        ldapUserStoreRepository.updateUser(userPath, mods);
 
-        List<String> multivalued = ListUtils.EnumToStringList(attr.getAll());
-        multivaluedStoreArray = ldapUserStoreRepository.getAttributeValues(multivalued);
-        mods = ldapUserStoreRepository.AttributeValuesToDeleteFromUserStore(samlValues, multivaluedStoreArray, gotAttribute);
-        if (mods.length >= 0)
-            ldapUserStoreRepository.updateUser(userPath, mods);
-        else
-            tracer.trace("Nothing to delete from User Store");
-    }
-
-    public void compareAndUpdateAttribute()
-    {
-
-    }
 
     public void setPrincipalPublic(NIDPPrincipal nidpPrincipal) {
         setPrincipal(nidpPrincipal);

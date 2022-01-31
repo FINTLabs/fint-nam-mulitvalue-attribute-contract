@@ -3,8 +3,6 @@ package si.genlan.nam.idp
 import si.genlan.nam.repositories.LdapUserStoreRepository
 import si.genlan.nam.repositories.SamlResponseAttributeRepository
 import spock.lang.Specification
-import javax.servlet.http.HttpServletRequest
-
 
 class UpdateUserStoreBySamlResponseContractSpec extends Specification {
 
@@ -13,7 +11,7 @@ class UpdateUserStoreBySamlResponseContractSpec extends Specification {
         updateUserStoreBySamlResponseContract = new UpdateUserStoreBySamlResponseContract(
                 new Properties(),
                 Mock(LdapUserStoreRepository),
-                new SamlResponseAttributeRepository()
+                new SamlResponseAttributeRepository(), userService
         )
     }
 

@@ -14,8 +14,18 @@ public class Tracer {
     private Tracer(String property) {
         this.trace = Boolean.parseBoolean(property);
     }
+    private Tracer(boolean property) {
+        this.trace = property;
+    }
 
     public static Tracer getInstance(String trace) {
+        if (instance == null) {
+            instance = new Tracer(trace);
+        }
+        return instance;
+    }
+
+    public static Tracer getInstance(boolean trace) {
         if (instance == null) {
             instance = new Tracer(trace);
         }
