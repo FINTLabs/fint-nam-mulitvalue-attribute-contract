@@ -58,9 +58,9 @@ public class UpdateUserStoreBySamlResponseContract extends LocalAuthenticationCl
         ldapUserStoreRepository = LdapUserStoreRepository
                 .builder()
                 .securityCredentials(getProperty(AttributesQueryConstants.PROP_NAME_LDAP_PASSWORD_PARAMETER).split(";"))
-                .securityPrincipal(ListUtils.StringToArray(getProperty(AttributesQueryConstants.PROP_NAME_LDAP_USER_PARAMETER), ";"))
-                .securityProtocol(ListUtils.StringToArray(getProperty(AttributesQueryConstants.PROP_NAME_LDAP_PROTOCOL_PARAMETER), ";"))
-                .providerUrl(ListUtils.StringToArray(getProperty(AttributesQueryConstants.PROP_NAME_LDAP_URL), ";"))
+                .securityPrincipal(getProperty(AttributesQueryConstants.PROP_NAME_LDAP_USER_PARAMETER).split(";"))
+                .securityProtocol(getProperty(AttributesQueryConstants.PROP_NAME_LDAP_PROTOCOL_PARAMETER).split(";"))
+                .providerUrl(getProperty(AttributesQueryConstants.PROP_NAME_LDAP_URL).split(";"))
                 .tracer(Tracer.getInstance(Boolean.toString(tracer.getTracing())))
                 .build();
         attributeRepository = new SamlResponseAttributeRepository();
