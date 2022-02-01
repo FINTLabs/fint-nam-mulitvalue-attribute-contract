@@ -35,9 +35,9 @@ You have to define next properties in your class:
 | Property Name | Property Value | Description |
 | ------------- | -------------- | ----------- |
 | ldapURL | ldaps://11.22.33.45:636;ldap://10.11.12.13:389 | URL From Access Manager Identity Servers. Since we can have more than all we should define all of them and separate them with ";" |
-| ldapProtocol | ssl;noEnc; | Protocol for class to connect to LDAP base. "ssl" is used for SSL and StartTLS connection, for everything else "noEnc" is used. It has to be in same order as URL and every URL should have this property |
-| ldapUsername | username1;username2; | Service account username for LDAP server specified in ldapURL. Users have to be in same order as URL and separated with ";". Each URL should also have username |
-| ldapPassword | password1;password2; | Service account password for LDAP server specified in ldapURL. Passwords have to be in same order as URL and separated with ";". Each URL should also have password |
+| ldapProtocol | ssl;noEnc | Protocol for class to connect to LDAP base. "ssl" is used for SSL and StartTLS connection, for everything else "noEnc" is used. It has to be in same order as URL and every URL should have this property |
+| ldapUsername | username1;username2 | Service account username for LDAP server specified in ldapURL. Users have to be in same order as URL and separated with ";". Each URL should also have username |
+| ldapPassword | password1;password2 | Service account password for LDAP server specified in ldapURL. Passwords have to be in same order as URL and separated with ";". Each URL should also have password |
 | trace | true/false | Debug log on/off |
  
 After class has been created you also have to create new Method with help from [documentation.](https://www.netiq.com/documentation/access-manager-45/admin/data/configureauthmethod.html)
