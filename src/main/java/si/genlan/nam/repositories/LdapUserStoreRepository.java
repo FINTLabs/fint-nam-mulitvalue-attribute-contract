@@ -3,15 +3,14 @@ package si.genlan.nam.repositories;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import si.genlan.nam.idp.Tracer;
 import si.genlan.nam.utils.ArrayUtils;
 
 import javax.naming.Context;
+import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
-import javax.naming.directory.BasicAttribute;
-import javax.naming.directory.DirContext;
-import javax.naming.directory.InitialDirContext;
-import javax.naming.directory.ModificationItem;
+import javax.naming.directory.*;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
@@ -21,39 +20,55 @@ import java.util.Properties;
 @AllArgsConstructor
 public class LdapUserStoreRepository {
 
-    private String providerUrl;
-    private String securityPrincipal;
-    private String securityCredentials;
-    private String matchingAttributeName;
+    private String[] providerUrl;
+    private String[] securityPrincipal;
+    private String[] securityCredentials;
+    private String[] securityProtocol;
 
-
-    private DirContext ldapConnection=null;
+    @Builder.Default
+    private DirContext ldapConnection = null;
     private Tracer tracer;
 
-    public void Connect(){
-        tracer.trace("Constructing new LDAP Connection");
+    public LdapUserStoreRepository connect(int index) {
         Properties env = new Properties();
         env.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory");
-        env.put(Context.PROVIDER_URL, providerUrl);
+        env.put(Context.PROVIDER_URL, providerUrl[index]);
         env.put(Context.SECURITY_AUTHENTICATION, "simple");
-        env.put(Context.SECURITY_PRINCIPAL, securityPrincipal);
-        env.put(Context.SECURITY_CREDENTIALS, securityCredentials);
-        env.put(Context.SECURITY_PROTOCOL, "ssl");
+        env.put(Context.SECURITY_PRINCIPAL, securityPrincipal[index]);
+        env.put(Context.SECURITY_CREDENTIALS, securityCredentials[index]);
+        env.put(Context.SECURITY_PROTOCOL, securityProtocol[index]);
         try {
             ldapConnection = new InitialDirContext(env);
             tracer.trace("newConnection: LDAP Connection Established: " + ldapConnection);
-            if(ldapConnection == null)
-                tracer.trace("Ldap connection not established");
-
+            return this;
         } catch (NamingException e) {
             e.printStackTrace();
+            return null;
         }
     }
 
-    public void updateUser(String name, ModificationItem[] modificationItems) throws NamingException {
-        ldapConnection.modifyAttributes(name, modificationItems);
-    }
+    public void updateUser(String name, ModificationItem[] modificaitonItems, String cn) throws NamingException {
+        for(int i=0; i< providerUrl.length; i++)
+        {
+            if(findUserOnServer(i, cn)) {
+                ldapConnection.modifyAttributes(name, modificaitonItems);
+                break;
+            }
+        }
 
+    }
+    public boolean findUserOnServer(int index, String cn) throws NamingException {
+        connect(index);
+        String searchFilter = "(cn="+cn+")";
+        SearchControls sc = new SearchControls();
+        sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
+        sc.setReturningAttributes(new String[]{"cn"});
+        NamingEnumeration searchResult = ldapConnection.search("", searchFilter, sc);
+        if(searchResult.hasMoreElements())
+            return true;
+        else
+            return false;
+    }
     public String[] getAttributeValues(List<String> attributes) throws NamingException {
         String[] multivalueStoreArray = new String[0];
         for(String s : attributes)
@@ -92,5 +107,4 @@ public class LdapUserStoreRepository {
         }
         return mods;
     }
-
 }

@@ -8,17 +8,26 @@ import java.util.Properties;
 public class Tracer {
 
     private static Tracer instance;
-    private String applicationName;
+
     private final boolean trace;
 
-    private Tracer(String property, String applicationName) {
+    private Tracer(String property) {
         this.trace = Boolean.parseBoolean(property);
-        this.applicationName = applicationName;
+    }
+    private Tracer(boolean property) {
+        this.trace = property;
     }
 
-    public static Tracer getInstance(String trace, String applicationName) {
-        if (instance == null || !instance.equalName(applicationName)) {
-            instance = new Tracer(trace, applicationName);
+    public static Tracer getInstance(String trace) {
+        if (instance == null) {
+            instance = new Tracer(trace);
+        }
+        return instance;
+    }
+
+    public static Tracer getInstance(boolean trace) {
+        if (instance == null) {
+            instance = new Tracer(trace);
         }
         return instance;
     }
@@ -32,18 +41,7 @@ public class Tracer {
             System.out.println(createLogMessage(messages));
         }
     }
-    public void traceBreak(int numberOfBreaks)
-    {
-        if(trace)
-        {
-            for(int i=0; i<numberOfBreaks; i++)
-                System.out.println("\n");
-        }
-    }
-    public boolean equalName(String appName)
-    {
-        return appName.equals(applicationName);
-    }
+
     public void traceConfig(Properties properties) {
 
         properties.keySet().stream()
@@ -55,6 +53,13 @@ public class Tracer {
 
     }
 
+    public void lineBreak(int numberOfBreaks) {
+        if (trace) {
+            for (int i = 0; i < numberOfBreaks; i++)
+                System.out.println("\n");
+        }
+    }
+
     private String createLogMessage(String... messages) {
         StringBuilder logMessage = new StringBuilder();
         for (String message : messages) {
@@ -62,7 +67,7 @@ public class Tracer {
         }
         SimpleDateFormat dtf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         Date now = new Date();
-        return applicationName + " @ " + dtf.format(now) + " ----> :" + logMessage.toString();
+        return "ReadingAttributesQuery @ " + dtf.format(now) + " ----> :" + logMessage.toString();
     }
 
 

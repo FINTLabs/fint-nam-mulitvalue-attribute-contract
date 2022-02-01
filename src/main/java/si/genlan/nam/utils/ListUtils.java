@@ -29,4 +29,10 @@ public class ListUtils {
 
         return list;
     }
+    /*
+    public static String[] StringToArray(String input, String splitter)
+    {
+        String[] returnString = input.split(splitter);
+        return returnString;
+    }*/
 }

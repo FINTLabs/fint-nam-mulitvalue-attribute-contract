@@ -19,11 +19,11 @@ public class SamlResponseService {
     private CacheService cacheService;
 
     public SamlResponseService(Properties properties) {
-        if(properties.containsKey(AttributesQueryConstants.PROP_NAME_TRACE)) {
-            this.tracer = Tracer.getInstance(properties.getProperty(AttributesQueryConstants.PROP_NAME_TRACE), "SamlResponseService GenLan");
+        if (properties.containsKey(AttributesQueryConstants.PROP_NAME_TRACE)) {
+            this.tracer = Tracer.getInstance(properties.getProperty(AttributesQueryConstants.PROP_NAME_TRACE));
+        } else {
+            this.tracer = Tracer.getInstance("true");
         }
-        else
-            this.tracer = Tracer.getInstance("true", "SamlResponseService GenLan");
 
         this.properties = properties;
         tracer.trace("SamlResponseService initiated!");
@@ -32,29 +32,27 @@ public class SamlResponseService {
                 .tracer(tracer)
                 .build();
     }
-    public Map<String, List<String>> getAccessManagerUserAttribute(NIDPSession m_Session)
-    {
+
+    public Map<String, List<String>> getAccessManagerUserAttribute(NIDPSession m_Session) {
         Map<String, List<String>> objectObjectHashMap = new HashMap<>();
         tracer.trace("m_Session SamlResponse: " + m_Session);
-        if(m_Session != null) {
-            tracer.trace("m_Session ID: " +  m_Session.getID());
+        if (m_Session != null) {
+            tracer.trace("m_Session ID: " + m_Session.getID());
             NIDPSubject subject = m_Session.getSubject();
-            if(subject != null)
-            {
+            if (subject != null) {
                 WSCCachePushedCache cache = cacheService.getPushedCache(m_Session);
                 Iterator<WSCCachePushedCacheSet> pushedCacheSetIterator = cache.iterator();
-                while(pushedCacheSetIterator.hasNext())
-                {
+                while (pushedCacheSetIterator.hasNext()) {
                     WSCCachePushedCacheSet pushedCacheSet = pushedCacheSetIterator.next();
                     tracer.trace(pushedCacheSet.toString());
                     for (WSCCacheEntry cacheEntry : pushedCacheSet.getEntries()) {
-                        tracer.trace("Select String: "+cacheEntry.getSelectString()); //Get Select String
+                        tracer.trace("Select String: " + cacheEntry.getSelectString()); //Get Select String
 
-                        String str1  = cacheEntry.getSelectString();
+                        String str1 = cacheEntry.getSelectString();
                         str1 = str1.replace("/UserAttribute[@ldap:targetAttribute=\"", ""); //GETTING ATTRIBUTE NAME
                         str1 = str1.replace("\"]", ""); //GETTING ATTRIBUTE NAME
                         //tracer.trace("Data Item Class" + cacheEntry.getDataItemValue().getClass());
-                        if(cacheEntry.getDataItemValue() instanceof LDAPUserAttribute) {
+                        if (cacheEntry.getDataItemValue() instanceof LDAPUserAttribute) {
 
                             LDAPUserAttribute ldapUserAttribute = (LDAPUserAttribute) cacheEntry.getDataItemValue(); //CHANGING INTO RIGHT CLASS
                             Iterator<LDAPAttributeValue> values = ldapUserAttribute.getValues(); //GETS ALL VALUES FROM LDAP
@@ -70,16 +68,13 @@ public class SamlResponseService {
                                 }
                                 objectObjectHashMap.put(str1, valuesList);
                             }
-                        }
-                        else
+                        } else
                             tracer.trace("Not instance of LDAPUserAttribute but: " + cacheEntry.getDataItemValue().getClass());
                     }
                 }
-            }
-            else
+            } else
                 tracer.trace("m_Session subject is null!");
-        }
-        else
+        } else
             tracer.trace("m_Session null");
 
         return objectObjectHashMap;

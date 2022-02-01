@@ -3,12 +3,20 @@ package si.genlan.nam.attributes;
 import com.novell.nidp.NIDPPrincipal;
 import com.novell.nidp.NIDPSession;
 import com.novell.nidp.NIDPSubject;
+import lombok.Builder;
 import si.genlan.nam.idp.Tracer;
 import si.genlan.nam.idp.UpdateUserStoreBySamlResponseContract;
 
 import java.util.Properties;
 
+//@Builder
 public class AuthenticatedUserPrincipalAttributes {
+
+    private Tracer tracer;
+    private NIDPPrincipal principal;
+    private Properties properties;
+    private NIDPSession session;
+
     public NIDPPrincipal getUserPrincipal(NIDPPrincipal principal, Properties m_Properties, NIDPSession m_Session, Tracer tracer) {
         NIDPPrincipal idpPrincipal = principal;
         if (idpPrincipal == null) {
